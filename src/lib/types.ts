@@ -1,10 +1,7 @@
 // ============================================================================
-// AI Agent Dashboard — Shared TypeScript Types (Full MCP + Swarm + LTM)
+// INFOHAS ClawHub — Shared TypeScript Types
 // ============================================================================
 
-// ---------------------------------------------------------------------------
-// Conversation
-// ---------------------------------------------------------------------------
 export interface Conversation {
   id: string
   title: string
@@ -12,22 +9,16 @@ export interface Conversation {
   provider?: string | null
   model?: string | null
   systemPrompt?: string | null
+  workspaceId?: string | null
   isArchived: boolean
+  isDeleted: boolean
+  deletedAt?: string | null
   createdAt: string
   updatedAt: string
   messages: Message[]
 }
 
-// ---------------------------------------------------------------------------
-// Message
-// ---------------------------------------------------------------------------
-export type MessageRole =
-  | 'user'
-  | 'assistant'
-  | 'system'
-  | 'agent-thought'
-  | 'agent-action'
-  | 'agent-observation'
+export type MessageRole = 'user' | 'assistant' | 'system' | 'agent-thought' | 'agent-action' | 'agent-observation'
 
 export interface Message {
   id: string
@@ -36,45 +27,12 @@ export interface Message {
   content: string
   metadata?: string | null
   isStreaming: boolean
+  isDeleted: boolean
+  deletedAt?: string | null
   createdAt: string
 }
 
-// ---------------------------------------------------------------------------
-// Provider — All Hermes Agent compatible providers
-// ---------------------------------------------------------------------------
-export type ProviderType =
-  | 'nous-portal'
-  | 'openai-codex'
-  | 'github-copilot'
-  | 'github-copilot-acp'
-  | 'anthropic'
-  | 'openrouter'
-  | 'novita'
-  | 'ai-gateway'
-  | 'zai'
-  | 'kimi'
-  | 'kimi-cn'
-  | 'arcee'
-  | 'gmi'
-  | 'minimax'
-  | 'minimax-cn'
-  | 'alibaba'
-  | 'alibaba-coding'
-  | 'kilocode'
-  | 'xiaomi'
-  | 'tencent-tokenhub'
-  | 'opencode-zen'
-  | 'opencode-go'
-  | 'deepseek'
-  | 'huggingface'
-  | 'gemini'
-  | 'gemini-cli'
-  | 'gemini-oauth'
-  | 'lmstudio'
-  | 'ollama'
-  | 'vllm'
-  | 'custom'
-  | 'cli'
+export type ProviderType = string
 
 export type AuthType = 'api-key' | 'oauth' | 'cli' | 'device-code'
 
@@ -110,9 +68,66 @@ export interface HermesProviderDef {
   aliases?: string[]
 }
 
-// ---------------------------------------------------------------------------
-// Settings
-// ---------------------------------------------------------------------------
+export interface ModelConfig {
+  id: string
+  name: string
+  provider: string
+  contextWindow: number
+  auxiliaryModels?: string | null
+  auxiliaryContext?: string | null
+  temperature: number
+  maxTokens: number
+  topP: number
+  frequencyPenalty: number
+  presencePenalty: number
+  priority: number
+  autoOptimize: boolean
+  isActive: boolean
+  isDefault: boolean
+  modelId?: string | null
+  baseUrl?: string | null
+  apiKey?: string | null
+  envVar?: string | null
+  authType?: AuthType | null
+  providerConfig?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Workspace {
+  id: string
+  name: string
+  description?: string | null
+  directory?: string | null
+  icon?: string | null
+  color?: string | null
+  isActive: boolean
+  isDefault: boolean
+  config?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CronJob {
+  id: string
+  name: string
+  description?: string | null
+  schedule: string
+  taskType: string
+  taskData: string
+  workspaceId?: string | null
+  modelConfigId?: string | null
+  isActive: boolean
+  isRunning: boolean
+  lastRunAt?: string | null
+  nextRunAt?: string | null
+  runCount: number
+  failCount: number
+  lastResult?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface AppSettings {
   theme: 'light' | 'dark' | 'system'
   defaultProvider?: string
@@ -125,16 +140,13 @@ export interface AppSettings {
   memoryMaxEntries: number
   memoryAutoSummarize: boolean
   reflectionEnabled: boolean
-  reflectionInterval: number // minutes between auto-reflections
-  daemonEnabled: boolean // 24/7 background service
-  godMode: boolean // auto-approve ALL shell commands
+  reflectionInterval: number
+  daemonEnabled: boolean
+  godMode: boolean
   whatsappEnabled?: boolean
   whatsappAutoReply?: boolean
 }
 
-// ---------------------------------------------------------------------------
-// Stream Events
-// ---------------------------------------------------------------------------
 export interface StreamEvent {
   type: 'start' | 'content' | 'error' | 'done'
   data: string
@@ -149,9 +161,6 @@ export interface AgentStreamEvent {
   timestamp: string
 }
 
-// ---------------------------------------------------------------------------
-// File Attachment
-// ---------------------------------------------------------------------------
 export interface FileAttachment {
   id: string
   messageId?: string | null
@@ -162,9 +171,6 @@ export interface FileAttachment {
   createdAt: string
 }
 
-// ---------------------------------------------------------------------------
-// Skill
-// ---------------------------------------------------------------------------
 export interface Skill {
   id: string
   name: string
@@ -178,9 +184,6 @@ export interface Skill {
   updatedAt: string
 }
 
-// ---------------------------------------------------------------------------
-// Plugin
-// ---------------------------------------------------------------------------
 export interface Plugin {
   id: string
   name: string
@@ -196,9 +199,6 @@ export interface Plugin {
   updatedAt: string
 }
 
-// ---------------------------------------------------------------------------
-// Memory (Long-Term Memory with vector embedding placeholder)
-// ---------------------------------------------------------------------------
 export type MemoryType = 'fact' | 'preference' | 'context' | 'conversation-summary' | 'learned-pattern' | 'reflection'
 
 export interface Memory {
@@ -216,9 +216,6 @@ export interface Memory {
   updatedAt: string
 }
 
-// ---------------------------------------------------------------------------
-// MCP Server
-// ---------------------------------------------------------------------------
 export type McpTransportType = 'stdio' | 'sse'
 
 export interface McpTool {
@@ -238,22 +235,19 @@ export interface McpServer {
   id: string
   name: string
   command: string
-  args?: string | null       // JSON array
-  envVars?: string | null    // JSON object
+  args?: string | null
+  envVars?: string | null
   transportType: McpTransportType
   serverUrl?: string | null
   isActive: boolean
   isConnected: boolean
-  discoveredTools?: string | null     // JSON array of McpTool
-  discoveredResources?: string | null // JSON array of McpResource
+  discoveredTools?: string | null
+  discoveredResources?: string | null
   lastConnectedAt?: string | null
   createdAt: string
   updatedAt: string
 }
 
-// ---------------------------------------------------------------------------
-// Agent Swarm
-// ---------------------------------------------------------------------------
 export type AgentStatus = 'idle' | 'running' | 'paused' | 'error' | 'completed'
 
 export interface AgentSwarm {
@@ -265,7 +259,7 @@ export interface AgentSwarm {
   providerId?: string | null
   model?: string | null
   currentTask?: string | null
-  taskHistory?: string | null  // JSON array
+  taskHistory?: string | null
   workspaceDir?: string | null
   autoApprove: boolean
   maxIterations: number
@@ -277,9 +271,6 @@ export interface AgentSwarm {
   updatedAt: string
 }
 
-// ---------------------------------------------------------------------------
-// Reflection Log
-// ---------------------------------------------------------------------------
 export type ReflectionType = 'daily' | 'task-complete' | 'error-recovery' | 'learning'
 
 export interface ReflectionLog {
@@ -287,8 +278,20 @@ export interface ReflectionLog {
   agentId?: string | null
   type: ReflectionType
   summary: string
-  insights?: string | null    // JSON array
-  actionItems?: string | null // JSON array
+  insights?: string | null
+  actionItems?: string | null
   successRate?: number | null
   createdAt: string
+}
+
+export interface HardwareProfile {
+  id: string
+  platform: string
+  arch: string
+  cpuCores: number
+  cpuModel?: string | null
+  totalRamGB: number
+  gpuInfo?: string | null
+  detectedAt: string
+  updatedAt: string
 }

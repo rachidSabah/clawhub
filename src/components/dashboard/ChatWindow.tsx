@@ -3,85 +3,51 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import { MessageBubble } from './MessageBubble'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Bot, MessageSquare, Sparkles } from 'lucide-react'
+import { Bot, MessageSquarePlus, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function ChatWindow() {
-  const { messages, isStreaming, streamingContent, activeConversationId, isAgentMode } = useAppStore()
+  const { messages, activeConversationId, streamingContent, isAgentMode } = useAppStore()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const prevMsgCount = useRef(0)
 
-  // Auto-scroll to bottom when new messages arrive or streaming content updates
   useEffect(() => {
-    if (scrollRef.current) {
+    if (messages.length > prevMsgCount.current && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
+    prevMsgCount.current = messages.length
   }, [messages, streamingContent])
 
   if (!activeConversationId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-8 h-8 text-white" />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto">
+            {isAgentMode ? <Bot className="w-8 h-8 text-white" /> : <MessageSquarePlus className="w-8 h-8 text-white" />}
           </div>
-          <h2 className="text-xl font-semibold mb-2">Hermes AI Agent</h2>
-          <p className="text-muted-foreground text-sm mb-6">
-            Start a new conversation or agent task to begin. Connect to Gemini CLI, OpenAI, Anthropic, or any OpenAI-compatible provider.
-          </p>
-          <div className="grid grid-cols-2 gap-3 text-left">
-            <div className="rounded-xl border border-border p-3 hover:bg-accent/50 cursor-pointer transition-colors">
-              <MessageSquare className="w-5 h-5 text-emerald-500 mb-2" />
-              <div className="text-sm font-medium">Chat Mode</div>
-              <div className="text-xs text-muted-foreground mt-1">Standard AI conversation with streaming responses</div>
-            </div>
-            <div className="rounded-xl border border-border p-3 hover:bg-accent/50 cursor-pointer transition-colors">
-              <Bot className="w-5 h-5 text-violet-500 mb-2" />
-              <div className="text-sm font-medium">Agent Mode</div>
-              <div className="text-xs text-muted-foreground mt-1">Autonomous agent with shell, file, and code access</div>
-            </div>
-          </div>
+          <h2 className="text-lg font-semibold">INFOHAS ClawHub</h2>
+          <p className="text-sm text-muted-foreground max-w-xs">Start a new chat or agent task to begin</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background overflow-hidden">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mx-auto mb-4">
-                {isAgentMode ? (
-                  <Bot className="w-6 h-6 text-white" />
-                ) : (
-                  <MessageSquare className="w-6 h-6 text-white" />
-                )}
-              </div>
-              <h3 className="text-lg font-medium mb-1">
-                {isAgentMode ? 'Agent Task Ready' : 'Start a Conversation'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {isAgentMode
-                  ? 'Describe a task and the agent will autonomously execute it.'
-                  : 'Type a message below to start chatting with the AI.'}
-              </p>
+    <div ref={scrollRef} className="flex-1 overflow-y-auto scroll-smooth">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+        {messages.filter(m => !m.isDeleted).map(msg => (
+          <div key={msg.id} className="group relative">
+            <MessageBubble message={msg} />
+            <div className="absolute -right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                onClick={async () => { const { deleteMessage } = await import('@/lib/api'); await deleteMessage(msg.id) }}>
+                <Trash2 className="w-3 h-3" />
+              </Button>
             </div>
           </div>
-        ) : (
-          <div className="py-4">
-            {messages.map((message, idx) => {
-              const isLastAssistant = message.role === 'assistant' && idx === messages.length - 1 && isStreaming
-              return (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  isStreaming={isLastAssistant}
-                  streamingContent={isLastAssistant ? streamingContent : undefined}
-                />
-              )
-            })}
-          </div>
+        ))}
+        {streamingContent && (
+          <MessageBubble message={{ id: 'streaming', conversationId: '', role: 'assistant', content: streamingContent, isStreaming: true, isDeleted: false, createdAt: new Date().toISOString() }} />
         )}
       </div>
     </div>

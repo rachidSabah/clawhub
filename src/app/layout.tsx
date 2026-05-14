@@ -1,41 +1,25 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { ThemeProvider } from 'next-themes'
+import { Toaster } from '@/components/ui/toaster'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: "Hermes AI Agent - Desktop Dashboard",
-  description: "Advanced AI Agent Dashboard with Gemini CLI integration, dynamic API provider management, and autonomous agent capabilities. Inspired by Hermes Agent and Claude Desktop.",
-  keywords: ["Hermes", "AI Agent", "Gemini", "Dashboard", "Autonomous Agent", "CLI"],
-  authors: [{ name: "Hermes AI" }],
-  icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
-  },
-};
+  title: 'INFOHAS ClawHub',
+  description: 'AI Desktop Dashboard — Multi-model orchestration, workspace management, cron automation',
+}
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
-        {children}
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>
-  );
+  )
 }

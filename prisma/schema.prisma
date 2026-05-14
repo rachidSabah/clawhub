@@ -7,6 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================================
+// INFOHAS ClawHub — Database Schema
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Conversations / Chat Sessions
+// ---------------------------------------------------------------------------
 model Conversation {
   id           String     @id @default(cuid())
   title        String     @default("New Chat")
@@ -14,10 +21,16 @@ model Conversation {
   provider     String?
   model        String?
   systemPrompt String?
+  workspaceId  String?
   isArchived   Boolean    @default(false)
+  isDeleted    Boolean    @default(false) // soft delete for restore
+  deletedAt    DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   messages     Message[]
+
+  @@index([workspaceId])
+  @@index([isDeleted])
 }
 
 model Message {
@@ -27,12 +40,47 @@ model Message {
   content        String
   metadata       String?      // JSON string for extra data
   isStreaming     Boolean      @default(false)
+  isDeleted      Boolean      @default(false) // soft delete
+  deletedAt      DateTime?
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
+  @@index([isDeleted])
 }
 
+// ---------------------------------------------------------------------------
+// Model Configuration — Multi-model orchestration with auxiliary models
+// ---------------------------------------------------------------------------
+model ModelConfig {
+  id               String   @id @default(cuid())
+  name             String
+  provider         String   // provider type key
+  contextWindow    Int      @default(128000)
+  auxiliaryModels  String?  // JSON array of model IDs for delegation
+  auxiliaryContext String?  // JSON array of context window sizes for aux models
+  temperature      Float    @default(0.7)
+  maxTokens        Int      @default(4096)
+  topP             Float    @default(1.0)
+  frequencyPenalty Float    @default(0.0)
+  presencePenalty  Float    @default(0.0)
+  priority         Int      @default(1) // 1=highest, lower = less priority
+  autoOptimize     Boolean  @default(true) // hardware-aware auto config
+  isActive         Boolean  @default(true)
+  isDefault        Boolean  @default(false)
+  modelId          String?  // actual model identifier (e.g. "gpt-4o", "claude-sonnet-4")
+  baseUrl          String?  // override base URL
+  apiKey           String?  // encrypted API key
+  envVar           String?  // environment variable for API key
+  authType         String?  // "api-key", "oauth", "cli", "device-code"
+  providerConfig   String?  // JSON extra config
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Provider — All compatible providers
+// ---------------------------------------------------------------------------
 model Provider {
   id              String   @id @default(cuid())
   name            String
@@ -49,22 +97,74 @@ model Provider {
   updatedAt       DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
+// Workspace — Persistent workspace system
+// ---------------------------------------------------------------------------
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  directory   String?  // workspace root directory path
+  icon        String?  // emoji or icon name
+  color       String?  // tailwind color class
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  config      String?  // JSON workspace-specific config
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Cron Job — Scheduled task automation
+// ---------------------------------------------------------------------------
+model CronJob {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  schedule    String    // cron expression (e.g. "*/5 * * * *")
+  taskType    String    // "shell", "api-call", "agent-task", "model-prompt"
+  taskData    String    // JSON: command, url, prompt, etc.
+  workspaceId String?
+  modelConfigId String?
+  isActive    Boolean   @default(true)
+  isRunning   Boolean   @default(false)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  runCount    Int       @default(0)
+  failCount   Int       @default(0)
+  lastResult  String?   // JSON last execution result
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive])
+  @@index([nextRunAt])
+}
+
+// ---------------------------------------------------------------------------
+// Setting — Key-value app settings
+// ---------------------------------------------------------------------------
 model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value String
 }
 
+// ---------------------------------------------------------------------------
+// File Attachment
+// ---------------------------------------------------------------------------
 model FileAttachment {
-  id             String   @id @default(cuid())
-  messageId      String?
-  fileName       String
-  filePath       String
-  fileType       String?
-  fileSize       Int?
-  createdAt      DateTime @default(now())
+  id         String   @id @default(cuid())
+  messageId  String?
+  fileName   String
+  filePath   String
+  fileType   String?
+  fileSize   Int?
+  createdAt  DateTime @default(now())
 }
 
+// ---------------------------------------------------------------------------
+// Skill — Reusable prompt templates saved as .md
+// ---------------------------------------------------------------------------
 model Skill {
   id          String   @id @default(cuid())
   name        String
@@ -78,6 +178,9 @@ model Skill {
   updatedAt   DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
+// Plugin — Installable plugins
+// ---------------------------------------------------------------------------
 model Plugin {
   id          String   @id @default(cuid())
   name        String
@@ -93,6 +196,9 @@ model Plugin {
   updatedAt   DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
+// Memory — Long-term memory with vector placeholder
+// ---------------------------------------------------------------------------
 model Memory {
   id          String    @id @default(cuid())
   type        String    // "fact", "preference", "context", "conversation-summary", "learned-pattern", "reflection"
@@ -101,8 +207,8 @@ model Memory {
   source      String?
   relevance   Float     @default(1.0)
   accessCount Int       @default(0)
-  tags        String?   // JSON array of tags for categorization
-  embedding   String?   // JSON array of floats (vector embedding placeholder)
+  tags        String?   // JSON array of tags
+  embedding   String?   // JSON array of floats (vector placeholder)
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -111,54 +217,75 @@ model Memory {
   @@index([key])
 }
 
+// ---------------------------------------------------------------------------
 // MCP Server configuration
+// ---------------------------------------------------------------------------
 model McpServer {
   id              String   @id @default(cuid())
-  name            String   // Display name e.g. "Google Drive"
-  command         String   // The command to start the MCP server (e.g. "npx", "python")
-  args            String?  // JSON array of args (e.g. ["@anthropic/mcp-server-gdrive"])
-  envVars         String?  // JSON object of env vars to pass
-  transportType   String   @default("stdio") // "stdio" or "sse"
-  serverUrl       String?  // URL for SSE transport
+  name            String
+  command         String
+  args            String?  // JSON array
+  envVars         String?  // JSON object
+  transportType   String   @default("stdio")
+  serverUrl       String?
   isActive        Boolean  @default(false)
   isConnected     Boolean  @default(false)
-  discoveredTools String?  // JSON array of tool definitions from the server
-  discoveredResources String? // JSON array of resource definitions
+  discoveredTools String?
+  discoveredResources String?
   lastConnectedAt DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
 // Agent Swarm — parallel autonomous agents
+// ---------------------------------------------------------------------------
 model AgentSwarm {
   id              String   @id @default(cuid())
-  name            String   // e.g. "Coder", "Researcher", "Manager"
-  role            String   // Agent role description
-  systemPrompt    String?  // Custom system prompt for this agent
-  status          String   @default("idle") // "idle", "running", "paused", "error", "completed"
-  providerId      String?  // Which provider this agent uses
-  model           String?  // Which model this agent uses
-  currentTask     String?  // Current task description
-  taskHistory     String?  // JSON array of completed tasks
-  workspaceDir    String?  // Working directory for this agent
-  autoApprove     Boolean  @default(false) // God Mode for this agent
-  maxIterations   Int      @default(50) // Max reasoning iterations per task
+  name            String
+  role            String
+  systemPrompt    String?
+  status          String   @default("idle")
+  providerId      String?
+  model           String?
+  currentTask     String?
+  taskHistory     String?  // JSON array
+  workspaceDir    String?
+  autoApprove     Boolean  @default(false)
+  maxIterations   Int      @default(50)
   iterationCount  Int      @default(0)
   isActive        Boolean  @default(true)
-  isDaemon        Boolean  @default(false) // Runs 24/7 in background
+  isDaemon        Boolean  @default(false)
   lastActivityAt  DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
 
-// Reflection Log — daily self-reflection entries
+// ---------------------------------------------------------------------------
+// Reflection Log
+// ---------------------------------------------------------------------------
 model ReflectionLog {
   id          String   @id @default(cuid())
-  agentId     String?  // Which agent generated this reflection
+  agentId     String?
   type        String   // "daily", "task-complete", "error-recovery", "learning"
-  summary     String   // The reflection summary
-  insights    String?  // JSON array of key insights
-  actionItems String?  // JSON array of action items derived
-  successRate Float?   // Task success rate metric
+  summary     String
+  insights    String?  // JSON array
+  actionItems String?  // JSON array
+  successRate Float?
   createdAt   DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Hardware Profile — detected system capabilities
+// ---------------------------------------------------------------------------
+model HardwareProfile {
+  id          String   @id @default(cuid())
+  platform    String   // "win32", "linux", "darwin"
+  arch        String   // "x64", "arm64"
+  cpuCores    Int
+  cpuModel    String?
+  totalRamGB  Float
+  gpuInfo     String?  // JSON
+  detectedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

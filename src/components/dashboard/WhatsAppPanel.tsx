@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import {
   MessageCircle,
   QrCode,
@@ -82,7 +81,6 @@ export function WhatsAppPanel() {
     return () => clearInterval(interval)
   }, [fetchStatus])
 
-  // When connecting, poll QR code
   useEffect(() => {
     if (status.status === 'connecting') {
       fetchQR()
@@ -99,7 +97,6 @@ export function WhatsAppPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'connect' }),
       })
-      // Wait a bit then refresh status
       setTimeout(() => {
         fetchStatus()
         fetchQR()
@@ -192,7 +189,7 @@ export function WhatsAppPanel() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Connect your WhatsApp account to chat with Hermes AI from your phone. No Meta Business API required — uses WhatsApp Web protocol.
+          Connect your WhatsApp account to chat with ClawHub AI from your phone. No Meta Business API required — uses WhatsApp Web protocol.
         </p>
 
         {status.status === 'offline' && (
@@ -263,7 +260,7 @@ export function WhatsAppPanel() {
 
           {status.sessionList?.length > 0 ? (
             <div className="space-y-1.5">
-              {status.sessionList.map((session, i) => (
+              {status.sessionList.map((session) => (
                 <div key={session.chatId} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 text-xs">
                   <span className="truncate flex-1">{session.chatId}</span>
                   <Badge variant="outline" className="text-[9px] h-4 ml-2">
@@ -274,7 +271,7 @@ export function WhatsAppPanel() {
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              No active WhatsApp sessions yet. Send a message to Hermes AI on WhatsApp to start.
+              No active WhatsApp sessions yet. Send a message to ClawHub AI on WhatsApp to start.
             </p>
           )}
         </div>
@@ -284,7 +281,7 @@ export function WhatsAppPanel() {
       {status.connected && (
         <div className="rounded-xl border border-border p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Send className="w-4 h-4 text-blue-500" />
+            <Send className="w-4 h-4 text-cyan-500" />
             <span className="text-sm font-medium">Send Test Message</span>
           </div>
 
@@ -303,7 +300,7 @@ export function WhatsAppPanel() {
               <Input
                 value={testMessage}
                 onChange={(e) => setTestMessage(e.target.value)}
-                placeholder="Hello from Hermes!"
+                placeholder="Hello from ClawHub!"
                 className="h-8 text-xs"
                 onKeyDown={(e) => e.key === 'Enter' && handleSendTest()}
               />
