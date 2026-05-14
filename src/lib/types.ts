@@ -128,6 +128,8 @@ export interface AppSettings {
   reflectionInterval: number // minutes between auto-reflections
   daemonEnabled: boolean // 24/7 background service
   godMode: boolean // auto-approve ALL shell commands
+  whatsappEnabled?: boolean
+  whatsappAutoReply?: boolean
 }
 
 // ---------------------------------------------------------------------------

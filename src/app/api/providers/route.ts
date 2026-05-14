@@ -1,5 +1,9 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { HERMES_PROVIDERS } from '@/lib/api'
+
+// All valid provider types from the Hermes registry
+const VALID_TYPES = HERMES_PROVIDERS.map(p => p.type)
 
 export async function GET() {
   try {
@@ -29,10 +33,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const validTypes = ['cli', 'openai-compatible', 'anthropic', 'ollama']
-    if (!type || !validTypes.includes(type)) {
+    // Accept all Hermes provider types plus 'cli' for backwards compatibility
+    const allValidTypes = [...VALID_TYPES, 'cli', 'openai-compatible']
+    if (!type || !allValidTypes.includes(type)) {
       return NextResponse.json(
-        { error: `Type is required and must be one of: ${validTypes.join(', ')}` },
+        { error: `Type is required and must be one of: ${allValidTypes.join(', ')}` },
         { status: 400 }
       )
     }
@@ -53,11 +58,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Look up default base URL and env var from the Hermes registry if not provided
+    const hermesDef = HERMES_PROVIDERS.find(p => p.type === type)
+    const resolvedBaseUrl = baseUrl ?? hermesDef?.defaultBaseUrl ?? null
+    const resolvedEnvVar = envVar ?? hermesDef?.envVar ?? null
+    const resolvedAuthType = authType ?? hermesDef?.authType ?? null
+
     const provider = await db.provider.create({
       data: {
         name,
         type,
-        baseUrl: baseUrl ?? null,
+        baseUrl: resolvedBaseUrl,
         apiKey: apiKey ?? null,
         isActive: isActive ?? true,
         isDefault: isDefault ?? false,
@@ -66,8 +77,8 @@ export async function POST(request: NextRequest) {
             ? models
             : JSON.stringify(models)
           : null,
-        envVar: envVar ?? null,
-        authType: authType ?? null,
+        envVar: resolvedEnvVar,
+        authType: resolvedAuthType,
         providerConfig: providerConfig !== undefined
           ? typeof providerConfig === 'string'
             ? providerConfig

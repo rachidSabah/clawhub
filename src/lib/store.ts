@@ -148,6 +148,13 @@ const defaultSettings: AppSettings = {
   theme: 'system',
   agentAutoApprove: false,
   agentRequireConfirm: true,
+  memoryEnabled: true,
+  memoryMaxEntries: 10000,
+  memoryAutoSummarize: true,
+  reflectionEnabled: true,
+  reflectionInterval: 60,
+  daemonEnabled: false,
+  godMode: false,
 }
 
 // ---------------------------------------------------------------------------

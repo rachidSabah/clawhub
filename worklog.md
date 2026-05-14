@@ -73,3 +73,35 @@ Stage Summary:
 - Daily reflection system for agent self-improvement
 - All 30+ API routes verified working
 - 13 dashboard UI components fully functional
+
+---
+Task ID: 4
+Agent: Main Agent
+Task: Fix provider display, add prebuilt agents, add WhatsApp integration
+
+Work Log:
+- Fixed provider API route to accept ALL 31 Hermes provider types (was limited to 4)
+- Created comprehensive seed script (prisma/seed.ts) that seeds all 31 Hermes providers + 4 prebuilt agents + default settings
+- Ran seed script: 31 providers + 4 prebuilt agents + 12 settings seeded successfully
+- Updated provider models route to handle all provider types with proper endpoint resolution (OpenAI-compatible, Gemini API, Ollama, Anthropic known models, DeepSeek known models, OpenRouter defaults)
+- Rewrote SettingsDialog with 6 tabs: Providers (full Hermes registry), MCP, Agent (with God Mode/Safe Mode governance), WhatsApp, Theme, Data
+- Provider registry UI with grouped categories (Cloud API, Chinese AI, Google/Gemini, OAuth, Local/Self-Hosted, Custom) and search filter
+- Quick-add buttons from Hermes catalog with auth type badges
+- Added 4 prebuilt agents: Hermes Coder, Hermes Full-Stack, Hermes SysAdmin, Hermes Agent (full capacity)
+- Built WhatsApp Bridge mini-service (mini-services/whatsapp-bridge/) using whatsapp-web.js — NO Meta API required
+- WhatsApp Bridge includes: QR code auth, message routing (WhatsApp <-> Hermes AI), command handler (/help, /agent, /chat, /clear, /status), session mapping, auto-reconnect, Express server on port 3004
+- Built WhatsApp API route (/api/whatsapp) as proxy to bridge service
+- Built WhatsAppPanel UI component with connection status, QR code display, session management, test message sending, command reference
+- Updated ConversationSidebar with prebuilt agent quick-start grid (Hermes Agent, Coder, Full-Stack, SysAdmin)
+- Added WhatsApp badge indicator for WhatsApp-linked conversations
+- Updated AppSettings type with whatsappEnabled, whatsappAutoReply fields
+- Updated store defaultSettings with all new fields (memoryEnabled, godMode, daemonEnabled, etc.)
+- Build passes with 0 errors, all 33 API routes verified functional
+
+Stage Summary:
+- All 31 Hermes providers now visible and configurable in Settings
+- 4 prebuilt agents available from sidebar quick-start
+- WhatsApp Web bridge ready (no Meta API needed — uses whatsapp-web.js)
+- SettingsDialog fully expanded with provider registry, agent governance, WhatsApp tab
+- ConversationSidebar has prebuilt agent quick-start buttons
+- Build: 0 errors, 33 API routes, 14 dashboard components
