@@ -5,6 +5,7 @@
 # Install:  curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
 # Update:   curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
 # Uninstall: rm -rf ~/clawhub
+# Docker:   docker compose up -d
 # ============================================================================
 
 set -euo pipefail
@@ -38,7 +39,8 @@ echo -e "${CYAN}
   ║     ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝   ╚═╝        ║
   ║                                                              ║
   ║              INFOHAS ClawHub AI Desktop Dashboard            ║
-  ║          Multi-Model Orchestration • 58 API Routes           ║
+  ║       Multi-Model Orchestration • 68+ API Routes            ║
+  ║         48 Tools • Messaging Gateway • Security              ║
   ║                                                              ║
   ╚══════════════════════════════════════════════════════════════╝
 ${NC}"
@@ -83,12 +85,10 @@ install_node_linux() {
 install_prerequisites() {
   local need_node=false
   local need_git=false
-  local need_chromium=false
 
   # Check Node.js
   if command -v node &>/dev/null; then
     local node_ver=$(node -v 2>/dev/null)
-    # Ensure Node.js >= 18
     local major=${node_ver%%.*}
     major=${major#v}
     if [ "$major" -lt 18 ]; then
@@ -162,7 +162,7 @@ install_clawhub() {
   local install_dir="${CLAWHUB_DIR:-$HOME/clawhub}"
 
   # --- Step 1: Clone ---
-  step "1/6" "Cloning INFOHAS ClawHub..."
+  step "1/7" "Cloning INFOHAS ClawHub..."
 
   if [ -d "$install_dir/.git" ]; then
     info "Existing installation found at ${install_dir}, pulling latest..."
@@ -176,7 +176,7 @@ install_clawhub() {
   fi
 
   # --- Step 2: Install Dependencies ---
-  step "2/6" "Installing dependencies..."
+  step "2/7" "Installing dependencies..."
 
   if command -v bun &>/dev/null; then
     info "Using Bun $(bun -v 2>/dev/null)"
@@ -186,22 +186,34 @@ install_clawhub() {
     npm install --legacy-peer-deps
   fi
 
-  # --- Step 3: Generate Prisma Client ---
-  step "3/6" "Generating Prisma client..."
+  # --- Step 3: Install Mini-Service Dependencies ---
+  step "3/7" "Installing mini-service dependencies..."
+
+  for svc in agent-ws whatsapp-bridge messaging-gateway; do
+    if [ -d "mini-services/$svc" ]; then
+      info "Installing deps for $svc..."
+      cd "mini-services/$svc"
+      npm install --legacy-peer-deps 2>/dev/null || warn "Could not install deps for $svc (non-fatal)"
+      cd "$install_dir"
+    fi
+  done
+
+  # --- Step 4: Generate Prisma Client ---
+  step "4/7" "Generating Prisma client..."
   npx prisma generate
 
-  # --- Step 4: Setup Database ---
-  step "4/6" "Setting up SQLite database..."
+  # --- Step 5: Setup Database ---
+  step "5/7" "Setting up SQLite database..."
   npx prisma db push
 
-  # --- Step 5: Seed Data ---
-  step "5/6" "Seeding providers, agents, and settings..."
+  # --- Step 6: Seed Data ---
+  step "6/7" "Seeding providers, agents, and settings..."
   npx tsx prisma/seed.ts 2>/dev/null || {
     warn "Seed script had warnings (non-fatal, continuing...)"
   }
 
-  # --- Step 6: Build ---
-  step "6/6" "Building production application..."
+  # --- Step 7: Build ---
+  step "7/7" "Building production application..."
   if command -v bun &>/dev/null; then
     bun run build
   else
@@ -220,18 +232,24 @@ install_clawhub() {
   echo -e "${GREEN}║  Start (prod):  cd ${install_dir} && npm start          ${NC}"
   echo -e "${GREEN}║  URL:           http://localhost:3000                        ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
-  echo -e "${GREEN}║  WhatsApp:      cd ${install_dir}/mini-services/whatsapp-bridge${NC}"
-  echo -e "${GREEN}║                 && npm start                                 ║${NC}"
+  echo -e "${GREEN}║  Docker:        docker compose up -d                        ║${NC}"
+  echo -e "${GREEN}║  Docker pull:   docker pull ghcr.io/rachidsabah/clawhub     ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
-  echo -e "${GREEN}║  WebSocket:     cd ${install_dir}/mini-services/agent-ws    ${NC}"
-  echo -e "${GREEN}║                 && npm start                                 ║${NC}"
+  echo -e "${GREEN}║  Services:                                                   ║${NC}"
+  echo -e "${GREEN}║    Main App:    http://localhost:3000                        ║${NC}"
+  echo -e "${GREEN}║    WebSocket:   ws://localhost:3003                          ║${NC}"
+  echo -e "${GREEN}║    WhatsApp:    http://localhost:3004                        ║${NC}"
+  echo -e "${GREEN}║    Messaging:   http://localhost:3005                        ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
+  echo -e "${GREEN}║  Slash Commands:  /help /compress /usage /insights          ║${NC}"
+  echo -e "${GREEN}║                   /skills /stop /status /platforms          ║${NC}"
   echo -e "${GREEN}║  Command Palette:  Ctrl+K                                    ║${NC}"
   echo -e "${GREEN}║  Keyboard Help:    Ctrl+Shift+/                              ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
   echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
   echo ""
   echo -e "${CYAN}Docs: https://github.com/rachidSabah/clawhub${NC}"
+  echo -e "${CYAN}Docker: docker pull ghcr.io/rachidsabah/clawhub:latest${NC}"
   echo ""
 }
 

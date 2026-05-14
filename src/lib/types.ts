@@ -295,3 +295,115 @@ export interface HardwareProfile {
   detectedAt: string
   updatedAt: string
 }
+
+// ---------------------------------------------------------------------------
+// Security & Approval
+// ---------------------------------------------------------------------------
+
+export type RiskLevel = 'low' | 'medium' | 'high'
+export type ApprovalStatus = 'pending' | 'approved' | 'denied' | 'expired'
+
+export interface SecurityApproval {
+  id: string
+  actionType: string
+  description: string
+  requestedBy?: string | null
+  riskLevel: RiskLevel
+  status: ApprovalStatus
+  reviewedBy?: string | null
+  reviewedAt?: string | null
+  metadata?: string | null
+  expiresAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PendingApproval {
+  id: string
+  type: string
+  description: string
+  requestedBy?: string | null
+  requestedAt: string
+  riskLevel: RiskLevel
+  expiresAt?: string | null
+}
+
+export type DmPlatform = 'telegram' | 'discord' | 'slack' | 'signal' | 'whatsapp'
+
+export interface DmPairing {
+  id: string
+  platform: DmPlatform
+  userId: string
+  displayName?: string | null
+  isActive: boolean
+  addedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// User Profile & Context Files
+// ---------------------------------------------------------------------------
+
+export interface UserProfile {
+  id: string
+  name: string
+  email?: string | null
+  preferences: Record<string, unknown>
+  soulMd?: string | null
+  contextFiles: string[]
+  homeDir?: string | null
+  isActive: boolean
+  lastActiveAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type ContextFileCategory = 'project' | 'persona' | 'instructions' | 'custom'
+
+export interface ContextFile {
+  id: string
+  name: string
+  path: string
+  content: string
+  category: ContextFileCategory
+  isActive: boolean
+  autoLoad: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ActiveContext {
+  context: string
+  fileCount: number
+  files: Array<{ id: string; name: string; path: string; category: string }>
+}
+
+// ---------------------------------------------------------------------------
+// Tool Definitions (expanded 40+ tools)
+// ---------------------------------------------------------------------------
+
+export interface ToolParameter {
+  type: string
+  description: string
+  required?: boolean
+}
+
+export interface ToolDefinition {
+  name: string
+  description: string
+  category: string
+  riskLevel: RiskLevel
+  parameters: {
+    type: 'object'
+    properties: Record<string, ToolParameter>
+    required: string[]
+  }
+  requiresApproval: boolean
+}
+
+export interface ToolExecutionResult {
+  success: boolean
+  data?: unknown
+  error?: string
+  approvalId?: string
+  requiresApproval?: boolean
+}

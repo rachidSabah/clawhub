@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type {
   Conversation, Message, Provider, ModelInfo, AppSettings, AgentStreamEvent,
   Skill, Plugin, Memory, McpServer, AgentSwarm, ReflectionLog, ModelConfig, Workspace, CronJob,
+  PendingApproval, DmPairing, UserProfile, ContextFile, ToolDefinition,
 } from '@/lib/types'
 import {
   fetchConversations as apiFetchConversations,
@@ -17,6 +18,11 @@ import {
   fetchModelConfigs as apiFetchModelConfigs,
   fetchWorkspaces as apiFetchWorkspaces,
   fetchCronJobs as apiFetchCronJobs,
+  fetchPendingApprovals as apiFetchPendingApprovals,
+  fetchDmPairings as apiFetchDmPairings,
+  fetchUserProfile as apiFetchUserProfile,
+  fetchContextFiles as apiFetchContextFiles,
+  fetchTools as apiFetchTools,
 } from '@/lib/api'
 
 interface AppState {
@@ -37,6 +43,8 @@ interface AppState {
   streamingContent: string
   appendStreamingContent: (chunk: string) => void
   clearStreamingContent: () => void
+  abortController: AbortController | null
+  setAbortController: (controller: AbortController | null) => void
   
   // Agent
   isAgentMode: boolean
@@ -107,6 +115,24 @@ interface AppState {
   loadSwarmAgents: () => Promise<void>
   reflections: ReflectionLog[]
   loadReflections: () => Promise<void>
+  
+  // Security
+  pendingApprovals: PendingApproval[]
+  loadPendingApprovals: () => Promise<void>
+  dmPairings: DmPairing[]
+  loadDmPairings: () => Promise<void>
+  
+  // User Profile
+  userProfile: UserProfile | null
+  loadUserProfile: () => Promise<void>
+  
+  // Context Files
+  contextFiles: ContextFile[]
+  loadContextFiles: () => Promise<void>
+  
+  // Tools (expanded)
+  tools: ToolDefinition[]
+  loadTools: () => Promise<void>
 }
 
 const defaultSettings: AppSettings = {
@@ -141,6 +167,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   streamingContent: '',
   appendStreamingContent: (chunk) => set((s) => ({ streamingContent: s.streamingContent + chunk })),
   clearStreamingContent: () => set({ streamingContent: '' }),
+  abortController: null,
+  setAbortController: (c) => set({ abortController: c }),
   isAgentMode: false,
   toggleAgentMode: () => set((s) => ({ isAgentMode: !s.isAgentMode })),
   agentLog: [],
@@ -223,4 +251,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadSwarmAgents: async () => { try { set({ swarmAgents: await apiFetchSwarmAgents() }) } catch {} },
   reflections: [],
   loadReflections: async () => { try { set({ reflections: await apiFetchReflections() }) } catch {} },
+  pendingApprovals: [],
+  loadPendingApprovals: async () => { try { const res = await apiFetchPendingApprovals(); set({ pendingApprovals: res.pending }) } catch {} },
+  dmPairings: [],
+  loadDmPairings: async () => { try { const res = await apiFetchDmPairings(); set({ dmPairings: res.pairings }) } catch {} },
+  userProfile: null,
+  loadUserProfile: async () => { try { const res = await apiFetchUserProfile(); set({ userProfile: res.profile }) } catch {} },
+  contextFiles: [],
+  loadContextFiles: async () => { try { const res = await apiFetchContextFiles(); set({ contextFiles: res.files }) } catch {} },
+  tools: [],
+  loadTools: async () => { try { const res = await apiFetchTools(); set({ tools: res.tools }) } catch {} },
 }))

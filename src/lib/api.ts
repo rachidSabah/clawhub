@@ -25,6 +25,16 @@ import type {
   Workspace,
   CronJob,
   HardwareProfile,
+  SecurityApproval,
+  PendingApproval,
+  DmPairing,
+  DmPlatform,
+  UserProfile,
+  ContextFile,
+  ContextFileCategory,
+  ActiveContext,
+  ToolDefinition,
+  ToolExecutionResult,
 } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -413,4 +423,154 @@ export async function fetchReflections(): Promise<ReflectionLog[]> {
 
 export async function triggerDailyReflection(): Promise<ReflectionLog[]> {
   return request<ReflectionLog[]>('/api/reflections/daily', { method: 'POST' })
+}
+
+// ---------------------------------------------------------------------------
+// Security — Approval
+// ---------------------------------------------------------------------------
+
+export async function approveSecurityAction(actionId: string, approved: boolean): Promise<{ status: string }> {
+  return request<{ status: string }>('/api/security/approve', {
+    method: 'POST',
+    body: JSON.stringify({ actionId, approved }),
+  })
+}
+
+export async function fetchPendingApprovals(): Promise<{ pending: PendingApproval[] }> {
+  return request<{ pending: PendingApproval[] }>('/api/security/pending')
+}
+
+// ---------------------------------------------------------------------------
+// Security — DM Pairing
+// ---------------------------------------------------------------------------
+
+export async function fetchDmPairings(): Promise<{ pairings: DmPairing[] }> {
+  return request<{ pairings: DmPairing[] }>('/api/security/dm-pairing')
+}
+
+export async function pairDmUser(platform: DmPlatform, userId: string, displayName?: string): Promise<{ paired: boolean; userId: string }> {
+  return request<{ paired: boolean; userId: string }>('/api/security/dm-pairing', {
+    method: 'POST',
+    body: JSON.stringify({ platform, userId, displayName }),
+  })
+}
+
+export async function unpairDmUser(platform: DmPlatform, userId: string): Promise<{ removed: boolean }> {
+  return request<{ removed: boolean }>('/api/security/dm-pairing', {
+    method: 'DELETE',
+    body: JSON.stringify({ platform, userId }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// User Profile
+// ---------------------------------------------------------------------------
+
+export async function fetchUserProfile(): Promise<{ profile: UserProfile }> {
+  return request<{ profile: UserProfile }>('/api/profile')
+}
+
+export async function updateUserProfile(data: {
+  name?: string
+  preferences?: Record<string, unknown>
+  soulMd?: string
+  homeDir?: string
+  contextFiles?: string[]
+}): Promise<{ profile: UserProfile }> {
+  return request<{ profile: UserProfile }>('/api/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Context Files
+// ---------------------------------------------------------------------------
+
+export async function fetchContextFiles(): Promise<{ files: ContextFile[] }> {
+  return request<{ files: ContextFile[] }>('/api/context-files')
+}
+
+export async function createContextFile(data: {
+  name: string
+  path: string
+  content: string
+  category?: ContextFileCategory
+  autoLoad?: boolean
+}): Promise<{ file: ContextFile }> {
+  return request<{ file: ContextFile }>('/api/context-files', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateContextFile(id: string, data: Partial<ContextFile>): Promise<{ file: ContextFile }> {
+  return request<{ file: ContextFile }>(`/api/context-files/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteContextFile(id: string): Promise<{ deleted: boolean }> {
+  return request<{ deleted: boolean }>(`/api/context-files/${id}`, { method: 'DELETE' })
+}
+
+export async function fetchActiveContext(): Promise<ActiveContext> {
+  return request<ActiveContext>('/api/context-files/active')
+}
+
+// ---------------------------------------------------------------------------
+// Tools (expanded)
+// ---------------------------------------------------------------------------
+
+export async function fetchTools(): Promise<{ tools: ToolDefinition[]; count: number }> {
+  return request<{ tools: ToolDefinition[]; count: number }>('/api/tools')
+}
+
+export async function executeTool(
+  tool: string,
+  parameters: Record<string, unknown>,
+  options?: { workspaceId?: string; autoApprove?: boolean }
+): Promise<ToolExecutionResult> {
+  return request<ToolExecutionResult>('/api/tools/execute', {
+    method: 'POST',
+    body: JSON.stringify({ tool, parameters, ...options }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Slash Command APIs
+// ---------------------------------------------------------------------------
+
+export async function compressContext(conversationId: string, maxMessages = 20): Promise<any> {
+  return request<any>('/api/context/compress', {
+    method: 'POST',
+    body: JSON.stringify({ conversationId, maxMessages }),
+  })
+}
+
+export async function fetchInsights(days = 7): Promise<any> {
+  return request<any>(`/api/insights?days=${days}`)
+}
+
+export async function executeSkill(name: string, input = ''): Promise<any> {
+  return request<any>('/api/skills/execute', {
+    method: 'POST',
+    body: JSON.stringify({ name, input }),
+  })
+}
+
+export async function fetchAppStatus(): Promise<any> {
+  return request<any>('/api/status')
+}
+
+export async function fetchMessagingStatus(): Promise<any> {
+  return request<any>('/api/messaging/status')
+}
+
+export async function setHomeDir(path: string): Promise<AppSettings> {
+  return request<AppSettings>('/api/settings', {
+    method: 'PATCH',
+    body: JSON.stringify({ agentWorkspaceDir: path }),
+  })
 }

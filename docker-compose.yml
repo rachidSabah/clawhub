@@ -1,0 +1,68 @@
+# ============================================================================
+# INFOHAS ClawHub — Docker Compose
+# ============================================================================
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose up -d --build      # Rebuild and start
+#   docker compose logs -f            # Follow logs
+#   docker compose down               # Stop all
+# ============================================================================
+
+version: "3.9"
+
+services:
+  clawhub:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clawhub
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # Main Dashboard
+      - "3003:3003"   # Agent WebSocket
+      - "3004:3004"   # WhatsApp Bridge
+      - "3005:3005"   # Messaging Gateway
+    environment:
+      - DATABASE_URL=file:/app/data/clawhub.db
+      - WHATTSAPP_ENABLED=${WHATTSAPP_ENABLED:-false}
+      - MESSAGING_ENABLED=${MESSAGING_ENABLED:-false}
+      # AI Provider Keys (uncomment and fill as needed)
+      # - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      # - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      # - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # - NOVITA_API_KEY=${NOVITA_API_KEY:-}
+      # - GROQ_API_KEY=${GROQ_API_KEY:-}
+      # - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      # - COHERE_API_KEY=${COHERE_API_KEY:-}
+      # - TOGETHER_API_KEY=${TOGETHER_API_KEY:-}
+      # - FIREWORKS_API_KEY=${FIREWORKS_API_KEY:-}
+      # - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+      # - XAI_API_KEY=${XAI_API_KEY:-}
+      # Telegram
+      # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      # Discord
+      # - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      # Slack
+      # - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      # - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+      # Signal
+      # - SIGNAL_NUMBER=${SIGNAL_NUMBER:-}
+    volumes:
+      - clawhub-data:/app/data
+      - clawhub-whatsapp:/app/mini-services/whatsapp-bridge/.wwebjs_auth
+      # Mount .env for provider keys
+      - ./.env:/app/.env:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  clawhub-data:
+    driver: local
+  clawhub-whatsapp:
+    driver: local

@@ -289,3 +289,71 @@ model HardwareProfile {
   detectedAt  DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// ---------------------------------------------------------------------------
+// Security Approval — command approval flow
+// ---------------------------------------------------------------------------
+model SecurityApproval {
+  id          String    @id @default(cuid())
+  actionType  String    // "shell-execute", "file-write", "file-delete", "api-call", "agent-task"
+  description String
+  requestedBy String?   // agent ID or user
+  riskLevel   String    @default("medium") // "low", "medium", "high"
+  status      String    @default("pending") // "pending", "approved", "denied", "expired"
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  metadata    String?   // JSON
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// DM Pairing — allowed DM users for messaging platforms
+// ---------------------------------------------------------------------------
+model DmPairing {
+  id          String   @id @default(cuid())
+  platform    String   // "telegram", "discord", "slack", "signal", "whatsapp"
+  userId      String
+  displayName String?
+  isActive    Boolean  @default(true)
+  addedAt     DateTime @default(now())
+
+  @@unique([platform, userId])
+}
+
+// ---------------------------------------------------------------------------
+// User Profile — active user configuration and persona
+// ---------------------------------------------------------------------------
+model UserProfile {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?  @unique
+  preferences   String?  // JSON: theme, language, defaultModel, etc.
+  soulMd        String?  // SOUL.md persona content
+  contextFiles  String?  // JSON array of context file paths
+  homeDir       String?  // Default workspace directory
+  isActive      Boolean  @default(true)
+  lastActiveAt  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Context File — reusable context files for AI system prompts
+// ---------------------------------------------------------------------------
+model ContextFile {
+  id          String   @id @default(cuid())
+  name        String
+  path        String
+  content     String
+  category    String   @default("project") // "project", "persona", "instructions", "custom"
+  isActive    Boolean  @default(true)
+  autoLoad    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}

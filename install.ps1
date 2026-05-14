@@ -4,6 +4,7 @@
 # Install:  irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.ps1 | iex
 # Update:   irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.ps1 | iex
 # Uninstall: Remove-Item -Recurse -Force "$env:USERPROFILE\clawhub"
+# Docker:   docker compose up -d
 # ============================================================================
 
 $ErrorActionPreference = "Stop"
@@ -13,7 +14,8 @@ Write-Host ""
 Write-Host "  ================================================================" -ForegroundColor Cyan
 Write-Host "  |                                                              |" -ForegroundColor Cyan
 Write-Host "  |              INFOHAS ClawHub AI Desktop Dashboard            |" -ForegroundColor Cyan
-Write-Host "  |          Multi-Model Orchestration - 58 API Routes           |" -ForegroundColor Cyan
+Write-Host "  |       Multi-Model Orchestration - 68+ API Routes            |" -ForegroundColor Cyan
+Write-Host "  |         48 Tools - Messaging Gateway - Security              |" -ForegroundColor Cyan
 Write-Host "  |                                                              |" -ForegroundColor Cyan
 Write-Host "  ================================================================" -ForegroundColor Cyan
 Write-Host ""
@@ -73,7 +75,6 @@ if (-not $nodeInstalled) {
 
     Refresh-Path
 
-    # Verify
     try {
         $ver = node -v
         Write-Ok "Node.js $ver installed successfully"
@@ -125,7 +126,7 @@ if (-not $gitInstalled) {
 $installDir = if ($env:CLAWHUB_DIR) { $env:CLAWHUB_DIR } else { "$env:USERPROFILE\clawhub" }
 
 # Step 1: Clone
-Write-Step "1/6" "Cloning INFOHAS ClawHub..."
+Write-Step "1/7" "Cloning INFOHAS ClawHub..."
 
 if (Test-Path "$installDir\.git") {
     Write-Host "  Existing installation found, pulling latest..." -ForegroundColor Yellow
@@ -142,19 +143,32 @@ if (Test-Path "$installDir\.git") {
 Push-Location $installDir
 
 # Step 2: Install Dependencies
-Write-Step "2/6" "Installing dependencies..."
+Write-Step "2/7" "Installing dependencies..."
 npm install --legacy-peer-deps
 
-# Step 3: Generate Prisma Client
-Write-Step "3/6" "Generating Prisma client..."
+# Step 3: Install Mini-Service Dependencies
+Write-Step "3/7" "Installing mini-service dependencies..."
+$services = @("agent-ws", "whatsapp-bridge", "messaging-gateway")
+foreach ($svc in $services) {
+    $svcPath = Join-Path $installDir "mini-services\$svc"
+    if (Test-Path $svcPath) {
+        Write-Host "  Installing deps for $svc..." -ForegroundColor Yellow
+        Push-Location $svcPath
+        npm install --legacy-peer-deps 2>$null
+        Pop-Location
+    }
+}
+
+# Step 4: Generate Prisma Client
+Write-Step "4/7" "Generating Prisma client..."
 npx prisma generate
 
-# Step 4: Setup Database
-Write-Step "4/6" "Setting up SQLite database..."
+# Step 5: Setup Database
+Write-Step "5/7" "Setting up SQLite database..."
 npx prisma db push
 
-# Step 5: Seed Data
-Write-Step "5/6" "Seeding providers, agents, and settings..."
+# Step 6: Seed Data
+Write-Step "6/7" "Seeding providers, agents, and settings..."
 try {
     npx tsx prisma/seed.ts 2>$null
     Write-Ok "Database seeded"
@@ -162,8 +176,8 @@ try {
     Write-Warn "Seed script had warnings (non-fatal, continuing...)"
 }
 
-# Step 6: Build
-Write-Step "6/6" "Building production application..."
+# Step 7: Build
+Write-Step "7/7" "Building production application..."
 npm run build
 
 Pop-Location
@@ -182,16 +196,22 @@ Write-Host "  |  Start (dev):   cd $installDir && npm run dev         " -Foregro
 Write-Host "  |  Start (prod):  cd $installDir && npm start            " -ForegroundColor Green
 Write-Host "  |  URL:           http://localhost:3000                        " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
-Write-Host "  |  WhatsApp:      cd $installDir\mini-services\whatsapp-bridge" -ForegroundColor Green
-Write-Host "  |                  && npm start                                " -ForegroundColor Green
+Write-Host "  |  Docker:        docker compose up -d                        " -ForegroundColor Green
+Write-Host "  |  Docker pull:   docker pull ghcr.io/rachidsabah/clawhub     " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
-Write-Host "  |  WebSocket:     cd $installDir\mini-services\agent-ws      " -ForegroundColor Green
-Write-Host "  |                  && npm start                                " -ForegroundColor Green
+Write-Host "  |  Services:                                                   " -ForegroundColor Green
+Write-Host "  |    Main App:    http://localhost:3000                        " -ForegroundColor Green
+Write-Host "  |    WebSocket:   ws://localhost:3003                          " -ForegroundColor Green
+Write-Host "  |    WhatsApp:    http://localhost:3004                        " -ForegroundColor Green
+Write-Host "  |    Messaging:   http://localhost:3005                        " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
+Write-Host "  |  Slash Commands:  /help /compress /usage /insights          " -ForegroundColor Green
+Write-Host "  |                   /skills /stop /status /platforms          " -ForegroundColor Green
 Write-Host "  |  Command Palette:  Ctrl+K                                    " -ForegroundColor Green
 Write-Host "  |  Keyboard Help:    Ctrl+Shift+/                              " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
 Write-Host "  ================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Docs: https://github.com/rachidSabah/clawhub" -ForegroundColor Cyan
+Write-Host "  Docker: docker pull ghcr.io/rachidsabah/clawhub:latest" -ForegroundColor Cyan
 Write-Host ""

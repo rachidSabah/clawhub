@@ -6,12 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Cpu, Thermometer, Zap, Coins, Search, Image, Download, Upload, FileText, ArrowLeftRight } from 'lucide-react'
+import { Cpu, Thermometer, Zap, Coins, Search, Image, Download, Upload, FileText, ArrowLeftRight, Shield, User, BookOpen } from 'lucide-react'
 import { TokenUsagePanel } from './TokenUsagePanel'
 import { ImageGenerationPanel } from './ImageGenerationPanel'
 import { WebSearchPanel } from './WebSearchPanel'
 import { DocumentsPanel } from './DocumentsPanel'
 import { ModelComparisonPanel } from './ModelComparisonPanel'
+import { SecurityPanel } from './SecurityPanel'
+import { ProfilePanel } from './ProfilePanel'
+import { ContextFilesPanel } from './ContextFilesPanel'
 
 export function RightPanel() {
   const { modelConfigs, loadModelConfigs, rightPanelTab, setRightPanelTab } = useAppStore()
@@ -83,14 +86,17 @@ export function RightPanel() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold">Inspector</span>
           </div>
-          <TabsList className="w-full grid grid-cols-7 h-7">
-            <TabsTrigger value="model" className="text-[10px] gap-0.5"><Zap className="w-3 h-3" /> Model</TabsTrigger>
-            <TabsTrigger value="compare" className="text-[10px] gap-0.5"><ArrowLeftRight className="w-3 h-3" /> Compare</TabsTrigger>
-            <TabsTrigger value="tokens" className="text-[10px] gap-0.5"><Coins className="w-3 h-3" /> Tokens</TabsTrigger>
-            <TabsTrigger value="search" className="text-[10px] gap-0.5"><Search className="w-3 h-3" /> Search</TabsTrigger>
-            <TabsTrigger value="image" className="text-[10px] gap-0.5"><Image className="w-3 h-3" /> Image</TabsTrigger>
-            <TabsTrigger value="docs" className="text-[10px] gap-0.5"><FileText className="w-3 h-3" /> Docs</TabsTrigger>
-            <TabsTrigger value="export" className="text-[10px] gap-0.5"><Download className="w-3 h-3" /> Data</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-10 h-7">
+            <TabsTrigger value="model" className="text-[9px] gap-0.5"><Zap className="w-3 h-3" /> Model</TabsTrigger>
+            <TabsTrigger value="compare" className="text-[9px] gap-0.5"><ArrowLeftRight className="w-3 h-3" /> Compare</TabsTrigger>
+            <TabsTrigger value="tokens" className="text-[9px] gap-0.5"><Coins className="w-3 h-3" /> Tokens</TabsTrigger>
+            <TabsTrigger value="search" className="text-[9px] gap-0.5"><Search className="w-3 h-3" /> Search</TabsTrigger>
+            <TabsTrigger value="image" className="text-[9px] gap-0.5"><Image className="w-3 h-3" /> Image</TabsTrigger>
+            <TabsTrigger value="docs" className="text-[9px] gap-0.5"><FileText className="w-3 h-3" /> Docs</TabsTrigger>
+            <TabsTrigger value="security" className="text-[9px] gap-0.5"><Shield className="w-3 h-3" /> Security</TabsTrigger>
+            <TabsTrigger value="profile" className="text-[9px] gap-0.5"><User className="w-3 h-3" /> Profile</TabsTrigger>
+            <TabsTrigger value="context" className="text-[9px] gap-0.5"><BookOpen className="w-3 h-3" /> Context</TabsTrigger>
+            <TabsTrigger value="export" className="text-[9px] gap-0.5"><Download className="w-3 h-3" /> Data</TabsTrigger>
           </TabsList>
         </div>
         <ScrollArea className="flex-1">
@@ -148,6 +154,18 @@ export function RightPanel() {
 
           <TabsContent value="docs" className="m-0">
             <DocumentsPanel />
+          </TabsContent>
+
+          <TabsContent value="security" className="m-0">
+            <SecurityPanel />
+          </TabsContent>
+
+          <TabsContent value="profile" className="m-0">
+            <ProfilePanel />
+          </TabsContent>
+
+          <TabsContent value="context" className="m-0">
+            <ContextFilesPanel />
           </TabsContent>
 
           <TabsContent value="export" className="p-3 m-0 space-y-3">
