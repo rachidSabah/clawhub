@@ -1,5 +1,5 @@
 // ============================================================================
-// AI Agent Dashboard — Shared TypeScript Types
+// AI Agent Dashboard — Shared TypeScript Types (Full MCP + Swarm + LTM)
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -8,7 +8,7 @@
 export interface Conversation {
   id: string
   title: string
-  mode: 'chat' | 'agent'
+  mode: 'chat' | 'agent' | 'swarm'
   provider?: string | null
   model?: string | null
   systemPrompt?: string | null
@@ -100,7 +100,6 @@ export interface ModelInfo {
   provider: string
 }
 
-/** Full Hermes provider registry — used to populate the Add Provider UI */
 export interface HermesProviderDef {
   type: ProviderType
   label: string
@@ -125,6 +124,10 @@ export interface AppSettings {
   memoryEnabled: boolean
   memoryMaxEntries: number
   memoryAutoSummarize: boolean
+  reflectionEnabled: boolean
+  reflectionInterval: number // minutes between auto-reflections
+  daemonEnabled: boolean // 24/7 background service
+  godMode: boolean // auto-approve ALL shell commands
 }
 
 // ---------------------------------------------------------------------------
@@ -192,9 +195,9 @@ export interface Plugin {
 }
 
 // ---------------------------------------------------------------------------
-// Memory
+// Memory (Long-Term Memory with vector embedding placeholder)
 // ---------------------------------------------------------------------------
-export type MemoryType = 'fact' | 'preference' | 'context' | 'conversation-summary' | 'learned-pattern'
+export type MemoryType = 'fact' | 'preference' | 'context' | 'conversation-summary' | 'learned-pattern' | 'reflection'
 
 export interface Memory {
   id: string
@@ -204,7 +207,86 @@ export interface Memory {
   source?: string | null
   relevance: number
   accessCount: number
+  tags?: string | null
+  embedding?: string | null
   expiresAt?: string | null
   createdAt: string
   updatedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// MCP Server
+// ---------------------------------------------------------------------------
+export type McpTransportType = 'stdio' | 'sse'
+
+export interface McpTool {
+  name: string
+  description?: string
+  inputSchema?: Record<string, unknown>
+}
+
+export interface McpResource {
+  uri: string
+  name: string
+  description?: string
+  mimeType?: string
+}
+
+export interface McpServer {
+  id: string
+  name: string
+  command: string
+  args?: string | null       // JSON array
+  envVars?: string | null    // JSON object
+  transportType: McpTransportType
+  serverUrl?: string | null
+  isActive: boolean
+  isConnected: boolean
+  discoveredTools?: string | null     // JSON array of McpTool
+  discoveredResources?: string | null // JSON array of McpResource
+  lastConnectedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// Agent Swarm
+// ---------------------------------------------------------------------------
+export type AgentStatus = 'idle' | 'running' | 'paused' | 'error' | 'completed'
+
+export interface AgentSwarm {
+  id: string
+  name: string
+  role: string
+  systemPrompt?: string | null
+  status: AgentStatus
+  providerId?: string | null
+  model?: string | null
+  currentTask?: string | null
+  taskHistory?: string | null  // JSON array
+  workspaceDir?: string | null
+  autoApprove: boolean
+  maxIterations: number
+  iterationCount: number
+  isActive: boolean
+  isDaemon: boolean
+  lastActivityAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// Reflection Log
+// ---------------------------------------------------------------------------
+export type ReflectionType = 'daily' | 'task-complete' | 'error-recovery' | 'learning'
+
+export interface ReflectionLog {
+  id: string
+  agentId?: string | null
+  type: ReflectionType
+  summary: string
+  insights?: string | null    // JSON array
+  actionItems?: string | null // JSON array
+  successRate?: number | null
+  createdAt: string
 }

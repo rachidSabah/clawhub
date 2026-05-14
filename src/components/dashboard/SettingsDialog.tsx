@@ -40,8 +40,10 @@ import {
   Palette,
   Database,
   Loader2,
+  Cable,
 } from 'lucide-react'
 import type { Provider, ProviderType, ModelInfo } from '@/lib/types'
+import { McpConfigPanel } from './McpConfigPanel'
 
 const providerTypes: { value: ProviderType; label: string; description: string }[] = [
   { value: 'cli', label: 'Gemini CLI', description: 'Local Gemini CLI installation' },
@@ -133,7 +135,7 @@ export function SettingsDialog() {
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="max-w-2xl max-h-[85vh] p-0">
+      <DialogContent className="max-w-3xl max-h-[85vh] p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
             <Server className="w-5 h-5" />
@@ -143,10 +145,14 @@ export function SettingsDialog() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <div className="px-6 pt-2">
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-5">
               <TabsTrigger value="providers" className="text-xs gap-1.5">
                 <Globe className="w-3.5 h-3.5" />
                 Providers
+              </TabsTrigger>
+              <TabsTrigger value="mcp" className="text-xs gap-1.5">
+                <Cable className="w-3.5 h-3.5" />
+                MCP
               </TabsTrigger>
               <TabsTrigger value="agent" className="text-xs gap-1.5">
                 <Shield className="w-3.5 h-3.5" />
@@ -350,6 +356,11 @@ export function SettingsDialog() {
                   </div>
                 )}
               </div>
+            </TabsContent>
+
+            {/* MCP Tab */}
+            <TabsContent value="mcp" className="p-6 pt-4 m-0">
+              <McpConfigPanel />
             </TabsContent>
 
             {/* Agent Tab */}

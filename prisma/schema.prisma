@@ -10,7 +10,7 @@ datasource db {
 model Conversation {
   id           String     @id @default(cuid())
   title        String     @default("New Chat")
-  mode         String     @default("chat") // "chat" or "agent"
+  mode         String     @default("chat") // "chat", "agent", "swarm"
   provider     String?
   model        String?
   systemPrompt String?
@@ -25,7 +25,7 @@ model Message {
   conversationId String
   role           String       // "user", "assistant", "system", "agent-thought", "agent-action", "agent-observation"
   content        String
-  metadata       String?      // JSON string for extra data (file refs, command details, etc.)
+  metadata       String?      // JSON string for extra data
   isStreaming     Boolean      @default(false)
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -35,16 +35,16 @@ model Message {
 
 model Provider {
   id              String   @id @default(cuid())
-  name            String   // Display name
-  type            String   // Provider type key (e.g. "nous-portal", "anthropic", "openrouter", etc.)
-  baseUrl         String?  // API base URL
-  apiKey          String?  // API key or token
-  envVar          String?  // Environment variable name (e.g. "OPENROUTER_API_KEY")
+  name            String
+  type            String   // Provider type key
+  baseUrl         String?
+  apiKey          String?
+  envVar          String?
   isActive        Boolean  @default(true)
   isDefault       Boolean  @default(false)
   models          String?  // JSON string of fetched models
   authType        String?  // "api-key", "oauth", "cli", "device-code"
-  providerConfig  String?  // JSON string for provider-specific config
+  providerConfig  String?  // JSON string
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -52,7 +52,7 @@ model Provider {
 model Setting {
   id    String @id @default(cuid())
   key   String @unique
-  value String // JSON string for complex values
+  value String
 }
 
 model FileAttachment {
@@ -67,13 +67,13 @@ model FileAttachment {
 
 model Skill {
   id          String   @id @default(cuid())
-  name        String   // Skill name
-  description String?  // Short description
-  content     String   // Markdown content (the skill itself)
-  category    String   @default("general") // "coding", "writing", "analysis", "general", etc.
-  isBuiltin   Boolean  @default(false) // Built-in skills can't be deleted
+  name        String
+  description String?
+  content     String
+  category    String   @default("general")
+  isBuiltin   Boolean  @default(false)
   isActive    Boolean  @default(true)
-  fileName    String?  // Original .md filename if imported
+  fileName    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -84,27 +84,81 @@ model Plugin {
   description String?
   version     String   @default("1.0.0")
   author      String?
-  repoUrl     String?  // GitHub or other repo URL
-  entryPoint  String?  // JS/TS entry file path
+  repoUrl     String?
+  entryPoint  String?
   isActive    Boolean  @default(true)
   isInstalled Boolean  @default(true)
-  config      String?  // JSON string for plugin configuration
+  config      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model Memory {
-  id          String   @id @default(cuid())
-  type        String   // "fact", "preference", "context", "conversation-summary", "learned-pattern"
-  key         String?  // Optional key for lookup
-  content     String   // The memory content
-  source      String?  // Where this memory came from (conversation id, user input, etc.)
-  relevance   Float    @default(1.0) // Relevance score for retrieval
-  accessCount Int      @default(0) // How many times this memory was accessed
-  expiresAt   DateTime? // Optional expiration
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default(cuid())
+  type        String    // "fact", "preference", "context", "conversation-summary", "learned-pattern", "reflection"
+  key         String?
+  content     String
+  source      String?
+  relevance   Float     @default(1.0)
+  accessCount Int       @default(0)
+  tags        String?   // JSON array of tags for categorization
+  embedding   String?   // JSON array of floats (vector embedding placeholder)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([type])
   @@index([key])
+}
+
+// MCP Server configuration
+model McpServer {
+  id              String   @id @default(cuid())
+  name            String   // Display name e.g. "Google Drive"
+  command         String   // The command to start the MCP server (e.g. "npx", "python")
+  args            String?  // JSON array of args (e.g. ["@anthropic/mcp-server-gdrive"])
+  envVars         String?  // JSON object of env vars to pass
+  transportType   String   @default("stdio") // "stdio" or "sse"
+  serverUrl       String?  // URL for SSE transport
+  isActive        Boolean  @default(false)
+  isConnected     Boolean  @default(false)
+  discoveredTools String?  // JSON array of tool definitions from the server
+  discoveredResources String? // JSON array of resource definitions
+  lastConnectedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Agent Swarm — parallel autonomous agents
+model AgentSwarm {
+  id              String   @id @default(cuid())
+  name            String   // e.g. "Coder", "Researcher", "Manager"
+  role            String   // Agent role description
+  systemPrompt    String?  // Custom system prompt for this agent
+  status          String   @default("idle") // "idle", "running", "paused", "error", "completed"
+  providerId      String?  // Which provider this agent uses
+  model           String?  // Which model this agent uses
+  currentTask     String?  // Current task description
+  taskHistory     String?  // JSON array of completed tasks
+  workspaceDir    String?  // Working directory for this agent
+  autoApprove     Boolean  @default(false) // God Mode for this agent
+  maxIterations   Int      @default(50) // Max reasoning iterations per task
+  iterationCount  Int      @default(0)
+  isActive        Boolean  @default(true)
+  isDaemon        Boolean  @default(false) // Runs 24/7 in background
+  lastActivityAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Reflection Log — daily self-reflection entries
+model ReflectionLog {
+  id          String   @id @default(cuid())
+  agentId     String?  // Which agent generated this reflection
+  type        String   // "daily", "task-complete", "error-recovery", "learning"
+  summary     String   // The reflection summary
+  insights    String?  // JSON array of key insights
+  actionItems String?  // JSON array of action items derived
+  successRate Float?   // Task success rate metric
+  createdAt   DateTime @default(now())
 }

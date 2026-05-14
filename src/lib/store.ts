@@ -14,6 +14,9 @@ import type {
   Skill,
   Plugin,
   Memory,
+  McpServer,
+  AgentSwarm,
+  ReflectionLog,
 } from '@/lib/types'
 
 import {
@@ -24,6 +27,9 @@ import {
   fetchSkills as apiFetchSkills,
   fetchPlugins as apiFetchPlugins,
   fetchMemories as apiFetchMemories,
+  fetchMcpServers as apiFetchMcpServers,
+  fetchSwarmAgents as apiFetchSwarmAgents,
+  fetchReflections as apiFetchReflections,
 } from '@/lib/api'
 
 // ---------------------------------------------------------------------------
@@ -113,6 +119,25 @@ interface AppState {
   // Memory search results
   memorySearchResults: Memory[]
   setMemorySearchResults: (results: Memory[]) => void
+
+  // MCP Servers
+  mcpServers: McpServer[]
+  setMcpServers: (servers: McpServer[]) => void
+  loadMcpServers: () => Promise<void>
+
+  // Agent Swarm
+  swarmAgents: AgentSwarm[]
+  setSwarmAgents: (agents: AgentSwarm[]) => void
+  loadSwarmAgents: () => Promise<void>
+
+  // Reflections
+  reflections: ReflectionLog[]
+  setReflections: (reflections: ReflectionLog[]) => void
+  loadReflections: () => Promise<void>
+
+  // Control Center stats
+  controlCenterOpen: boolean
+  setControlCenterOpen: (open: boolean) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -308,4 +333,44 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ---- Memory search results ---------------------------------------------
   memorySearchResults: [],
   setMemorySearchResults: (memorySearchResults) => set({ memorySearchResults }),
+
+  // ---- MCP Servers -------------------------------------------------------
+  mcpServers: [],
+  setMcpServers: (mcpServers) => set({ mcpServers }),
+  loadMcpServers: async () => {
+    try {
+      const mcpServers = await apiFetchMcpServers()
+      set({ mcpServers })
+    } catch (error) {
+      console.error('[store] Failed to load MCP servers:', error)
+    }
+  },
+
+  // ---- Agent Swarm -------------------------------------------------------
+  swarmAgents: [],
+  setSwarmAgents: (swarmAgents) => set({ swarmAgents }),
+  loadSwarmAgents: async () => {
+    try {
+      const swarmAgents = await apiFetchSwarmAgents()
+      set({ swarmAgents })
+    } catch (error) {
+      console.error('[store] Failed to load swarm agents:', error)
+    }
+  },
+
+  // ---- Reflections -------------------------------------------------------
+  reflections: [],
+  setReflections: (reflections) => set({ reflections }),
+  loadReflections: async () => {
+    try {
+      const reflections = await apiFetchReflections()
+      set({ reflections })
+    } catch (error) {
+      console.error('[store] Failed to load reflections:', error)
+    }
+  },
+
+  // ---- Control Center ----------------------------------------------------
+  controlCenterOpen: false,
+  setControlCenterOpen: (controlCenterOpen) => set({ controlCenterOpen }),
 }))

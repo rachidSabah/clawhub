@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { ThemeToggle } from './ThemeToggle'
 import { ConversationSidebar } from './ConversationSidebar'
@@ -9,15 +9,23 @@ import { AgentPanel } from './AgentPanel'
 import { InputBar } from './InputBar'
 import { ModelSelector } from './ModelSelector'
 import { SettingsDialog } from './SettingsDialog'
+import { ControlCenter } from './ControlCenter'
+import { AgentSwarmPanel } from './AgentSwarmPanel'
+import { FileTreePanel } from './FileTreePanel'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Settings,
   PanelLeftClose,
   PanelLeft,
   Bot,
   Terminal,
-  Sparkles,
+  LayoutDashboard,
+  PanelRightClose,
+  Cpu,
+  Folder,
 } from 'lucide-react'
 
 export function AppLayout() {
@@ -32,6 +40,9 @@ export function AppLayout() {
     loadSettings,
     loadConversations,
   } = useAppStore()
+
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false)
+  const [dashboardTab, setDashboardTab] = useState('control')
 
   useEffect(() => {
     loadProviders()
@@ -102,6 +113,20 @@ export function AppLayout() {
 
             <div className="h-5 w-px bg-border" />
 
+            {/* Dashboard Toggle */}
+            <Button
+              variant={isDashboardOpen ? 'default' : 'ghost'}
+              size="icon"
+              className={cn('h-8 w-8', isDashboardOpen && 'bg-cyan-600 hover:bg-cyan-700 text-white')}
+              onClick={() => setIsDashboardOpen(!isDashboardOpen)}
+            >
+              {isDashboardOpen ? (
+                <PanelRightClose className="w-4 h-4" />
+              ) : (
+                <LayoutDashboard className="w-4 h-4" />
+              )}
+            </Button>
+
             <ThemeToggle />
 
             <Button
@@ -123,6 +148,49 @@ export function AppLayout() {
 
         {/* Input bar */}
         <InputBar />
+      </div>
+
+      {/* Dashboard Panel (right side) */}
+      <div
+        className={cn(
+          'shrink-0 border-l border-border transition-all duration-300 ease-in-out overflow-hidden bg-background',
+          isDashboardOpen ? 'w-96' : 'w-0'
+        )}
+      >
+        <div className="w-96 h-full flex flex-col">
+          <Tabs value={dashboardTab} onValueChange={setDashboardTab} className="flex-1 flex flex-col min-h-0">
+            <div className="shrink-0 border-b border-border px-3 pt-3 pb-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold">Dashboard</span>
+              </div>
+              <TabsList className="w-full grid grid-cols-3 h-8">
+                <TabsTrigger value="control" className="text-[10px] gap-1">
+                  <Cpu className="w-3 h-3" />
+                  Control
+                </TabsTrigger>
+                <TabsTrigger value="swarm" className="text-[10px] gap-1">
+                  <Bot className="w-3 h-3" />
+                  Swarm
+                </TabsTrigger>
+                <TabsTrigger value="files" className="text-[10px] gap-1">
+                  <Folder className="w-3 h-3" />
+                  Files
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <ScrollArea className="flex-1">
+              <TabsContent value="control" className="p-4 m-0">
+                <ControlCenter />
+              </TabsContent>
+              <TabsContent value="swarm" className="p-4 m-0">
+                <AgentSwarmPanel />
+              </TabsContent>
+              <TabsContent value="files" className="p-4 m-0">
+                <FileTreePanel />
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
+        </div>
       </div>
 
       {/* Settings dialog */}

@@ -15,6 +15,12 @@ import type {
   Memory,
   MemoryType,
   HermesProviderDef,
+  McpServer,
+  McpTool,
+  McpResource,
+  AgentSwarm,
+  ReflectionLog,
+  ReflectionType,
 } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
@@ -298,7 +304,7 @@ export async function deletePlugin(id: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function fetchMemories(type?: string): Promise<Memory[]> {
-  const url = type ? `/api/memories?type=${encodeURIComponent(type)}` : '/api/memories'
+  const url = type ? `/api/memory?type=${encodeURIComponent(type)}` : '/api/memory'
   return request<Memory[]>(url)
 }
 
@@ -309,14 +315,14 @@ export async function createMemory(data: {
   source?: string
   relevance?: number
 }): Promise<Memory> {
-  return request<Memory>('/api/memories', {
+  return request<Memory>('/api/memory', {
     method: 'POST',
     body: JSON.stringify(data),
   })
 }
 
 export async function deleteMemory(id: string): Promise<void> {
-  return request<void>(`/api/memories/${id}`, {
+  return request<void>(`/api/memory/${id}`, {
     method: 'DELETE',
   })
 }
@@ -329,13 +335,13 @@ export async function searchMemories(
   const params = new URLSearchParams({ query })
   if (type) params.set('type', type)
   if (limit !== undefined) params.set('limit', String(limit))
-  return request<Memory[]>(`/api/memories/search?${params.toString()}`)
+  return request<Memory[]>(`/api/memory/search?${params.toString()}`)
 }
 
 export async function summarizeConversation(
   conversationId: string,
 ): Promise<Memory[]> {
-  return request<Memory[]>('/api/memories/summarize', {
+  return request<Memory[]>('/api/memory/summarize', {
     method: 'POST',
     body: JSON.stringify({ conversationId }),
   })
@@ -378,3 +384,176 @@ export const HERMES_PROVIDERS: HermesProviderDef[] = [
   { type: 'vllm', label: 'vLLM', description: 'Self-hosted vLLM endpoint', authType: 'api-key' },
   { type: 'custom', label: 'Custom Endpoint', description: 'Custom OpenAI-compatible endpoint', authType: 'api-key' },
 ]
+
+// ---------------------------------------------------------------------------
+// MCP Servers
+// ---------------------------------------------------------------------------
+
+export async function fetchMcpServers(): Promise<McpServer[]> {
+  return request<McpServer[]>('/api/mcp')
+}
+
+export async function createMcpServer(data: {
+  name: string
+  command: string
+  args?: string
+  envVars?: string
+  transportType?: string
+  serverUrl?: string
+  isActive?: boolean
+}): Promise<McpServer> {
+  return request<McpServer>('/api/mcp', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateMcpServer(
+  id: string,
+  data: Partial<McpServer>,
+): Promise<McpServer> {
+  return request<McpServer>(`/api/mcp-servers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteMcpServer(id: string): Promise<void> {
+  return request<void>(`/api/mcp-servers/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function connectMcpServer(
+  id: string,
+): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(
+    `/api/mcp-servers/${id}/connect`,
+    { method: 'POST' },
+  )
+}
+
+export async function disconnectMcpServer(
+  id: string,
+): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(
+    `/api/mcp-servers/${id}/disconnect`,
+    { method: 'POST' },
+  )
+}
+
+export async function discoverMcpTools(
+  id: string,
+): Promise<{ tools: McpTool[]; resources: McpResource[] }> {
+  return request<{ tools: McpTool[]; resources: McpResource[]}>(
+    `/api/mcp-servers/${id}/discover`,
+    { method: 'POST' },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Agent Swarm
+// ---------------------------------------------------------------------------
+
+export async function fetchSwarmAgents(): Promise<AgentSwarm[]> {
+  return request<AgentSwarm[]>('/api/swarm')
+}
+
+export async function createSwarmAgent(data: {
+  name: string
+  role: string
+  systemPrompt?: string
+  providerId?: string
+  model?: string
+  workspaceDir?: string
+  autoApprove?: boolean
+  maxIterations?: number
+  isDaemon?: boolean
+}): Promise<AgentSwarm> {
+  return request<AgentSwarm>('/api/swarm', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateSwarmAgent(
+  id: string,
+  data: Partial<AgentSwarm>,
+): Promise<AgentSwarm> {
+  return request<AgentSwarm>(`/api/swarm-agents/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteSwarmAgent(id: string): Promise<void> {
+  return request<void>(`/api/swarm-agents/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function startSwarmAgent(
+  id: string,
+  task: string,
+): Promise<AgentSwarm> {
+  return request<AgentSwarm>(`/api/swarm-agents/${id}/start`, {
+    method: 'POST',
+    body: JSON.stringify({ task }),
+  })
+}
+
+export async function stopSwarmAgent(id: string): Promise<AgentSwarm> {
+  return request<AgentSwarm>(`/api/swarm-agents/${id}/stop`, {
+    method: 'POST',
+  })
+}
+
+export async function stepSwarmAgent(
+  id: string,
+  data: {
+    thought: string
+    action: string
+    actionInput: Record<string, any>
+    observation: string
+  },
+): Promise<AgentSwarm> {
+  return request<AgentSwarm>(`/api/swarm-agents/${id}/step`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Reflections
+// ---------------------------------------------------------------------------
+
+export async function fetchReflections(
+  agentId?: string,
+  type?: string,
+): Promise<ReflectionLog[]> {
+  const params = new URLSearchParams()
+  if (agentId) params.set('agentId', agentId)
+  if (type) params.set('type', type)
+  const qs = params.toString()
+  return request<ReflectionLog[]>(`/api/reflections${qs ? `?${qs}` : ''}`)
+}
+
+export async function createReflection(data: {
+  agentId?: string
+  type: ReflectionType
+  summary: string
+  insights?: string
+  actionItems?: string
+  successRate?: number
+}): Promise<ReflectionLog> {
+  return request<ReflectionLog>('/api/reflections', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+export async function triggerDailyReflection(): Promise<ReflectionLog[]> {
+  return request<ReflectionLog[]>('/api/reflections/daily', {
+    method: 'POST',
+  })
+}
