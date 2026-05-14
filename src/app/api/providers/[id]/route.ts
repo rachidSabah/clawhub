@@ -45,7 +45,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { name, type, baseUrl, apiKey, isActive, isDefault, models } = body
+    const { name, type, baseUrl, apiKey, isActive, isDefault, models, envVar, authType, providerConfig } = body
 
     const validTypes = ['cli', 'openai-compatible', 'anthropic', 'ollama']
     if (type !== undefined && !validTypes.includes(type)) {
@@ -72,6 +72,20 @@ export async function PATCH(
     if (isDefault !== undefined) data.isDefault = isDefault
     if (models !== undefined) {
       data.models = typeof models === 'string' ? models : JSON.stringify(models)
+    }
+    if (envVar !== undefined) data.envVar = envVar
+    if (authType !== undefined) {
+      const validAuthTypes = ['api-key', 'oauth', 'cli', 'device-code']
+      if (!validAuthTypes.includes(authType)) {
+        return NextResponse.json(
+          { error: `Auth type must be one of: ${validAuthTypes.join(', ')}` },
+          { status: 400 }
+        )
+      }
+      data.authType = authType
+    }
+    if (providerConfig !== undefined) {
+      data.providerConfig = typeof providerConfig === 'string' ? providerConfig : JSON.stringify(providerConfig)
     }
 
     const provider = await db.provider.update({

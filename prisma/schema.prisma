@@ -34,16 +34,19 @@ model Message {
 }
 
 model Provider {
-  id          String   @id @default(cuid())
-  name        String   // "Gemini CLI", "OpenAI", "Anthropic", "Google", "Ollama", "Custom"
-  type        String   // "cli", "openai-compatible", "anthropic", "ollama"
-  baseUrl     String?
-  apiKey      String?  // Stored encrypted or as provided
-  isActive    Boolean  @default(true)
-  isDefault   Boolean  @default(false)
-  models      String?  // JSON string of fetched models
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String   // Display name
+  type            String   // Provider type key (e.g. "nous-portal", "anthropic", "openrouter", etc.)
+  baseUrl         String?  // API base URL
+  apiKey          String?  // API key or token
+  envVar          String?  // Environment variable name (e.g. "OPENROUTER_API_KEY")
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  models          String?  // JSON string of fetched models
+  authType        String?  // "api-key", "oauth", "cli", "device-code"
+  providerConfig  String?  // JSON string for provider-specific config
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Setting {
@@ -60,4 +63,48 @@ model FileAttachment {
   fileType       String?
   fileSize       Int?
   createdAt      DateTime @default(now())
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   // Skill name
+  description String?  // Short description
+  content     String   // Markdown content (the skill itself)
+  category    String   @default("general") // "coding", "writing", "analysis", "general", etc.
+  isBuiltin   Boolean  @default(false) // Built-in skills can't be deleted
+  isActive    Boolean  @default(true)
+  fileName    String?  // Original .md filename if imported
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Plugin {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  version     String   @default("1.0.0")
+  author      String?
+  repoUrl     String?  // GitHub or other repo URL
+  entryPoint  String?  // JS/TS entry file path
+  isActive    Boolean  @default(true)
+  isInstalled Boolean  @default(true)
+  config      String?  // JSON string for plugin configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Memory {
+  id          String   @id @default(cuid())
+  type        String   // "fact", "preference", "context", "conversation-summary", "learned-pattern"
+  key         String?  // Optional key for lookup
+  content     String   // The memory content
+  source      String?  // Where this memory came from (conversation id, user input, etc.)
+  relevance   Float    @default(1.0) // Relevance score for retrieval
+  accessCount Int      @default(0) // How many times this memory was accessed
+  expiresAt   DateTime? // Optional expiration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([key])
 }

@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, type, baseUrl, apiKey, isActive, isDefault, models } = body
+    const { name, type, baseUrl, apiKey, isActive, isDefault, models, envVar, authType, providerConfig } = body
 
     if (!name || typeof name !== 'string') {
       return NextResponse.json(
@@ -45,6 +45,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const validAuthTypes = ['api-key', 'oauth', 'cli', 'device-code']
+    if (authType && !validAuthTypes.includes(authType)) {
+      return NextResponse.json(
+        { error: `Auth type must be one of: ${validAuthTypes.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
     const provider = await db.provider.create({
       data: {
         name,
@@ -57,6 +65,13 @@ export async function POST(request: NextRequest) {
           ? typeof models === 'string'
             ? models
             : JSON.stringify(models)
+          : null,
+        envVar: envVar ?? null,
+        authType: authType ?? null,
+        providerConfig: providerConfig !== undefined
+          ? typeof providerConfig === 'string'
+            ? providerConfig
+            : JSON.stringify(providerConfig)
           : null,
       },
     })

@@ -11,6 +11,9 @@ import type {
   ModelInfo,
   AppSettings,
   AgentStreamEvent,
+  Skill,
+  Plugin,
+  Memory,
 } from '@/lib/types'
 
 import {
@@ -18,6 +21,9 @@ import {
   fetchMessages as apiFetchMessages,
   fetchProviders as apiFetchProviders,
   fetchSettings as apiFetchSettings,
+  fetchSkills as apiFetchSkills,
+  fetchPlugins as apiFetchPlugins,
+  fetchMemories as apiFetchMemories,
 } from '@/lib/api'
 
 // ---------------------------------------------------------------------------
@@ -87,6 +93,26 @@ interface AppState {
   addAttachment: (file: File) => void
   removeAttachment: (index: number) => void
   clearAttachments: () => void
+
+  // Skills
+  skills: Skill[]
+  setSkills: (skills: Skill[]) => void
+  loadSkills: () => Promise<void>
+
+  // Plugins
+  plugins: Plugin[]
+  setPlugins: (plugins: Plugin[]) => void
+  loadPlugins: () => Promise<void>
+
+  // Memory
+  memories: Memory[]
+  setMemories: (memories: Memory[]) => void
+  loadMemories: (type?: string) => Promise<void>
+  addMemory: (memory: Memory) => void
+
+  // Memory search results
+  memorySearchResults: Memory[]
+  setMemorySearchResults: (results: Memory[]) => void
 }
 
 // ---------------------------------------------------------------------------
@@ -240,4 +266,46 @@ export const useAppStore = create<AppState>((set, get) => ({
       attachments: state.attachments.filter((_, i) => i !== index),
     })),
   clearAttachments: () => set({ attachments: [] }),
+
+  // ---- Skills ------------------------------------------------------------
+  skills: [],
+  setSkills: (skills) => set({ skills }),
+  loadSkills: async () => {
+    try {
+      const skills = await apiFetchSkills()
+      set({ skills })
+    } catch (error) {
+      console.error('[store] Failed to load skills:', error)
+    }
+  },
+
+  // ---- Plugins -----------------------------------------------------------
+  plugins: [],
+  setPlugins: (plugins) => set({ plugins }),
+  loadPlugins: async () => {
+    try {
+      const plugins = await apiFetchPlugins()
+      set({ plugins })
+    } catch (error) {
+      console.error('[store] Failed to load plugins:', error)
+    }
+  },
+
+  // ---- Memory ------------------------------------------------------------
+  memories: [],
+  setMemories: (memories) => set({ memories }),
+  loadMemories: async (type?: string) => {
+    try {
+      const memories = await apiFetchMemories(type)
+      set({ memories })
+    } catch (error) {
+      console.error('[store] Failed to load memories:', error)
+    }
+  },
+  addMemory: (memory) =>
+    set((state) => ({ memories: [...state.memories, memory] })),
+
+  // ---- Memory search results ---------------------------------------------
+  memorySearchResults: [],
+  setMemorySearchResults: (memorySearchResults) => set({ memorySearchResults }),
 }))
