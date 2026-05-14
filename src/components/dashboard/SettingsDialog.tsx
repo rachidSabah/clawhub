@@ -1,8 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import { createProvider, updateProvider, deleteProvider, fetchProviderModels, updateSettings, HERMES_PROVIDERS } from '@/lib/api'
+import {
+  createProvider, updateProvider, deleteProvider, fetchProviderModels,
+  updateSettings, HERMES_PROVIDERS, fetchEnvSettings, updateEnvSettings,
+  fetchUpdateStatus, updateAutoUpdateSettings, checkForUpdates,
+} from '@/lib/api'
+import type { EnvEntry } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -49,9 +54,16 @@ import {
   Code2,
   Settings2,
   Wrench,
+  Send,
+  Radio,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  Save,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react'
 import type { ProviderType, ModelInfo, HermesProviderDef } from '@/lib/types'
-import { McpConfigPanel } from './McpConfigPanel'
 import { WhatsAppPanel } from './WhatsAppPanel'
 
 // ---------------------------------------------------------------------------
@@ -284,6 +296,752 @@ function getAuthBadge(authType?: string | null) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// API Keys Configuration Panel (reads/writes .env)
+// ---------------------------------------------------------------------------
+
+// Friendly label map for env keys
+const API_KEY_LABELS: Record<string, string> = {
+  'ANTHROPIC_API_KEY': 'Anthropic (Claude)',
+  'OPENAI_API_KEY': 'OpenAI (GPT-4)',
+  'GOOGLE_API_KEY': 'Google Gemini',
+  'DEEPSEEK_API_KEY': 'DeepSeek',
+  'OPENROUTER_API_KEY': 'OpenRouter',
+  'HF_TOKEN': 'Hugging Face',
+  'GLM_API_KEY': 'z.ai / GLM',
+  'KIMI_API_KEY': 'Kimi / Moonshot',
+  'DASHSCOPE_API_KEY': 'Alibaba Cloud',
+  'MINIMAX_API_KEY': 'MiniMax',
+  'NOVITA_API_KEY': 'NovitaAI',
+  'GROQ_API_KEY': 'Groq',
+  'MISTRAL_API_KEY': 'Mistral AI',
+  'COHERE_API_KEY': 'Cohere',
+  'TOGETHER_API_KEY': 'Together AI',
+  'FIREWORKS_API_KEY': 'Fireworks AI',
+  'PERPLEXITY_API_KEY': 'Perplexity',
+  'XAI_API_KEY': 'xAI (Grok)',
+  'SAMBANOVA_API_KEY': 'SambaNova',
+  'CEREBRAS_API_KEY': 'Cerebras',
+  'AI21_API_KEY': 'AI21 Labs',
+  'VOYAGE_API_KEY': 'Voyage AI',
+  'LM_API_KEY': 'LM Studio / Ollama Key',
+  'LM_BASE_URL': 'LM Studio Base URL',
+  'OLLAMA_BASE_URL': 'Ollama Base URL',
+}
+
+function ApiKeysPanel() {
+  const [envData, setEnvData] = useState<Record<string, EnvEntry>>({})
+  const [categories, setCategories] = useState<Record<string, string[]>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [editValues, setEditValues] = useState<Record<string, string>>({})
+  const [showValues, setShowValues] = useState<Record<string, boolean>>({})
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'warning'; text: string } | null>(null)
+
+  const loadEnv = useCallback(async () => {
+    try {
+      const data = await fetchEnvSettings()
+      setEnvData(data.env)
+      setCategories(data.categories)
+      // Initialize edit values from env data
+      const initValues: Record<string, string> = {}
+      for (const [key, entry] of Object.entries(data.env)) {
+        // For masked values, we don't prefill the edit field (user must re-enter)
+        initValues[key] = entry.masked ? '' : entry.value
+      }
+      setEditValues(initValues)
+    } catch (err) {
+      console.error('Failed to load env settings:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadEnv() }, [loadEnv])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setSaveMessage(null)
+    try {
+      // Only send keys that have been changed (non-empty edit values)
+      const updates: Record<string, string> = {}
+      for (const [key, value] of Object.entries(editValues)) {
+        if (value && value.trim()) {
+          updates[key] = value.trim()
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        setSaveMessage({ type: 'warning', text: 'No changes to save.' })
+        setSaving(false)
+        return
+      }
+
+      const result = await updateEnvSettings(updates)
+      if (result.restartRequired) {
+        setSaveMessage({ type: 'warning', text: 'Settings saved! Some changes require a server restart to take full effect.' })
+      } else {
+        setSaveMessage({ type: 'success', text: 'Settings saved successfully!' })
+      }
+      // Reload to get updated masked values
+      await loadEnv()
+    } catch (err: any) {
+      setSaveMessage({ type: 'warning', text: `Failed to save: ${err.message}` })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleShowValue = (key: string) => {
+    setShowValues(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const aiKeys = categories.aiProviders || []
+  const configuredCount = aiKeys.filter(k => envData[k]?.value && envData[k]?.source !== 'default').length
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Key className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-medium">API Key Configuration</span>
+          </div>
+          <Badge variant="outline" className="text-[10px] h-5">
+            {configuredCount}/{aiKeys.length} configured
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Configure your AI provider API keys here. Keys are stored in your local .env file and masked for security. Enter a new value to update an existing key.
+        </p>
+      </div>
+
+      {/* Cloud API Keys */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Cloud className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Cloud API Providers</span>
+        </div>
+        {aiKeys.filter(k => !['LM_API_KEY', 'LM_BASE_URL', 'OLLAMA_BASE_URL'].includes(k)).map(key => {
+          const entry = envData[key]
+          if (!entry) return null
+          const isConfigured = entry.value && entry.source !== 'default'
+          const isEditing = editValues[key] !== undefined
+          const showVal = showValues[key]
+
+          return (
+            <div key={key} className={cn(
+              'rounded-xl border p-3 space-y-2 transition-colors',
+              isConfigured ? 'border-emerald-500/20 bg-emerald-500/[0.02]' : 'border-border'
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={cn(
+                    'w-7 h-7 rounded-lg flex items-center justify-center text-xs',
+                    isConfigured ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
+                  )}>
+                    <Key className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium">{API_KEY_LABELS[key] || key}</span>
+                      {isConfigured ? (
+                        <Badge variant="outline" className="text-[8px] h-4 px-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Set</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[8px] h-4 px-1 text-muted-foreground">Not Set</Badge>
+                      )}
+                    </div>
+                    <code className="text-[10px] text-muted-foreground">{key}</code>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {entry.value && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleShowValue(key)}>
+                      {showVal ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {entry.value && !showVal && entry.masked && (
+                <div className="text-xs text-muted-foreground font-mono bg-muted/30 rounded-lg px-3 py-1.5">
+                  Current: {entry.value}
+                </div>
+              )}
+              {entry.value && showVal && (
+                <div className="text-xs text-muted-foreground font-mono bg-muted/30 rounded-lg px-3 py-1.5 break-all">
+                  {entry.value}
+                </div>
+              )}
+              {!entry.masked && entry.value && (
+                <div className="text-xs text-muted-foreground font-mono bg-muted/30 rounded-lg px-3 py-1.5 break-all">
+                  {entry.value}
+                </div>
+              )}
+
+              <Input
+                type="password"
+                value={editValues[key] || ''}
+                onChange={(e) => setEditValues(prev => ({ ...prev, [key]: e.target.value }))}
+                placeholder={isConfigured ? 'Enter new value to update...' : 'Enter your API key...'}
+                className="h-8 text-xs"
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Local / Self-Hosted */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Monitor className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground">Local / Self-Hosted</span>
+        </div>
+        {['LM_API_KEY', 'LM_BASE_URL', 'OLLAMA_BASE_URL'].map(key => {
+          const entry = envData[key]
+          if (!entry) return null
+          const isConfigured = entry.value && entry.source !== 'default'
+
+          return (
+            <div key={key} className={cn(
+              'rounded-xl border p-3 space-y-2 transition-colors',
+              isConfigured ? 'border-emerald-500/20 bg-emerald-500/[0.02]' : 'border-border'
+            )}>
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  'w-7 h-7 rounded-lg flex items-center justify-center text-xs',
+                  isConfigured ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'
+                )}>
+                  <Monitor className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <span className="text-sm font-medium">{API_KEY_LABELS[key] || key}</span>
+                  <code className="text-[10px] text-muted-foreground ml-2">{key}</code>
+                </div>
+              </div>
+              <Input
+                type={key.includes('KEY') ? 'password' : 'text'}
+                value={editValues[key] || ''}
+                onChange={(e) => setEditValues(prev => ({ ...prev, [key]: e.target.value }))}
+                placeholder={isConfigured ? 'Enter new value to update...' : key.includes('KEY') ? 'Usually not needed for local...' : 'http://localhost:11434'}
+                className="h-8 text-xs"
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Save Button */}
+      <div className="flex items-center justify-between pt-2">
+        {saveMessage && (
+          <div className={cn(
+            'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
+            saveMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+          )}>
+            {saveMessage.type === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+            {saveMessage.text}
+          </div>
+        )}
+        <div className="flex gap-2 ml-auto">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={loadEnv}>
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </Button>
+          <Button size="sm" className="h-8 text-xs gap-1" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            Save Keys
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Messaging Gateway Configuration Panel (reads/writes .env)
+// ---------------------------------------------------------------------------
+
+const MESSAGING_KEY_LABELS: Record<string, string> = {
+  'MESSAGING_ENABLED': 'Enable Messaging Gateway',
+  'TELEGRAM_BOT_TOKEN': 'Telegram Bot Token',
+  'DISCORD_BOT_TOKEN': 'Discord Bot Token',
+  'SLACK_BOT_TOKEN': 'Slack Bot Token (xoxb-...)',
+  'SLACK_SIGNING_SECRET': 'Slack Signing Secret',
+  'SLACK_APP_TOKEN': 'Slack App Token (xapp-...)',
+  'SIGNAL_NUMBER': 'Signal Phone Number',
+  'SIGNAL_CLI_API': 'Signal CLI API URL',
+  'HA_WEBHOOK_URL': 'Home Assistant Webhook URL',
+  'HA_TOKEN': 'Home Assistant Token',
+  'WHATTSAPP_ENABLED': 'Enable WhatsApp Bridge',
+}
+
+function MessagingConfigPanel() {
+  const [envData, setEnvData] = useState<Record<string, EnvEntry>>({})
+  const [categories, setCategories] = useState<Record<string, string[]>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [editValues, setEditValues] = useState<Record<string, string>>({})
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'warning'; text: string } | null>(null)
+
+  const loadEnv = useCallback(async () => {
+    try {
+      const data = await fetchEnvSettings()
+      setEnvData(data.env)
+      setCategories(data.categories)
+      const initValues: Record<string, string> = {}
+      for (const [key, entry] of Object.entries(data.env)) {
+        initValues[key] = entry.masked ? '' : entry.value
+      }
+      setEditValues(initValues)
+    } catch (err) {
+      console.error('Failed to load env settings:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadEnv() }, [loadEnv])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setSaveMessage(null)
+    try {
+      const updates: Record<string, string> = {}
+      for (const [key, value] of Object.entries(editValues)) {
+        if (value && value.trim()) {
+          updates[key] = value.trim()
+        }
+      }
+      if (Object.keys(updates).length === 0) {
+        setSaveMessage({ type: 'warning', text: 'No changes to save.' })
+        setSaving(false)
+        return
+      }
+      const result = await updateEnvSettings(updates)
+      setSaveMessage({
+        type: result.restartRequired ? 'warning' : 'success',
+        text: result.restartRequired
+          ? 'Settings saved! Restart the messaging gateway service for changes to take effect.'
+          : 'Settings saved successfully!',
+      })
+      await loadEnv()
+    } catch (err: any) {
+      setSaveMessage({ type: 'warning', text: `Failed to save: ${err.message}` })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleToggleMessaging = async (enabled: boolean) => {
+    setEditValues(prev => ({ ...prev, MESSAGING_ENABLED: enabled ? 'true' : 'false' }))
+  }
+
+  const handleToggleWhatsApp = async (enabled: boolean) => {
+    setEditValues(prev => ({ ...prev, WHATTSAPP_ENABLED: enabled ? 'true' : 'false' }))
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const messagingKeys = categories.messaging || []
+  const whatsappKeys = categories.whatsapp || []
+  const messagingEnabled = envData.MESSAGING_ENABLED?.value === 'true'
+  const whatsappEnabled = envData.WHATTSAPP_ENABLED?.value === 'true'
+
+  return (
+    <div className="space-y-4">
+      {/* Messaging Gateway Toggle */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', messagingEnabled ? 'bg-blue-500/10 text-blue-500' : 'bg-muted text-muted-foreground')}>
+              <Send className="w-4 h-4" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Messaging Gateway</Label>
+              <p className="text-xs text-muted-foreground">Connect ClawHub to Telegram, Discord, Slack, Signal, and Home Assistant (port 3005)</p>
+            </div>
+          </div>
+          <Switch
+            checked={editValues.MESSAGING_ENABLED === 'true' || messagingEnabled}
+            onCheckedChange={handleToggleMessaging}
+          />
+        </div>
+      </div>
+
+      {/* Messaging Platform Tokens */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Radio className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-medium">Platform Tokens</span>
+        </div>
+        <p className="text-xs text-muted-foreground mb-2">
+          Enter bot tokens for the messaging platforms you want to use. Leave empty to disable a specific platform.
+        </p>
+
+        {/* Telegram */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Telegram Bot Token</Label>
+          <Input
+            type="password"
+            value={editValues.TELEGRAM_BOT_TOKEN || ''}
+            onChange={(e) => setEditValues(prev => ({ ...prev, TELEGRAM_BOT_TOKEN: e.target.value }))}
+            placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+            className="h-8 text-xs"
+          />
+        </div>
+
+        <Separator />
+
+        {/* Discord */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Discord Bot Token</Label>
+          <Input
+            type="password"
+            value={editValues.DISCORD_BOT_TOKEN || ''}
+            onChange={(e) => setEditValues(prev => ({ ...prev, DISCORD_BOT_TOKEN: e.target.value }))}
+            placeholder="MTk4NjIy..."
+            className="h-8 text-xs"
+          />
+        </div>
+
+        <Separator />
+
+        {/* Slack */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Slack Bot Token</Label>
+          <Input
+            type="password"
+            value={editValues.SLACK_BOT_TOKEN || ''}
+            onChange={(e) => setEditValues(prev => ({ ...prev, SLACK_BOT_TOKEN: e.target.value }))}
+            placeholder="xoxb-your-slack-bot-token"
+            className="h-8 text-xs"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Signing Secret</Label>
+            <Input
+              type="password"
+              value={editValues.SLACK_SIGNING_SECRET || ''}
+              onChange={(e) => setEditValues(prev => ({ ...prev, SLACK_SIGNING_SECRET: e.target.value }))}
+              placeholder="your-signing-secret"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">App Token</Label>
+            <Input
+              type="password"
+              value={editValues.SLACK_APP_TOKEN || ''}
+              onChange={(e) => setEditValues(prev => ({ ...prev, SLACK_APP_TOKEN: e.target.value }))}
+              placeholder="xapp-your-app-token"
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Signal */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Signal</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              value={editValues.SIGNAL_NUMBER || ''}
+              onChange={(e) => setEditValues(prev => ({ ...prev, SIGNAL_NUMBER: e.target.value }))}
+              placeholder="+1234567890"
+              className="h-8 text-xs"
+            />
+            <Input
+              value={editValues.SIGNAL_CLI_API || ''}
+              onChange={(e) => setEditValues(prev => ({ ...prev, SIGNAL_CLI_API: e.target.value }))}
+              placeholder="http://localhost:8080"
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Home Assistant */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Home Assistant</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              value={editValues.HA_WEBHOOK_URL || ''}
+              onChange={(e) => setEditValues(prev => ({ ...prev, HA_WEBHOOK_URL: e.target.value }))}
+              placeholder="http://homeassistant.local:8123/api/webhook/clawhub"
+              className="h-8 text-xs"
+            />
+            <Input
+              type="password"
+              value={editValues.HA_TOKEN || ''}
+              onChange={(e) => setEditValues(prev => ({ ...prev, HA_TOKEN: e.target.value }))}
+              placeholder="Long-lived access token"
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* WhatsApp Bridge */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', whatsappEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground')}>
+              <MessageCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">WhatsApp Bridge</Label>
+              <p className="text-xs text-muted-foreground">Chat with ClawHub from WhatsApp — no Meta API needed (port 3004)</p>
+            </div>
+          </div>
+          <Switch
+            checked={editValues.WHATTSAPP_ENABLED === 'true' || whatsappEnabled}
+            onCheckedChange={handleToggleWhatsApp}
+          />
+        </div>
+        <WhatsAppPanel />
+      </div>
+
+      {/* Save Button */}
+      <div className="flex items-center justify-between pt-2">
+        {saveMessage && (
+          <div className={cn(
+            'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
+            saveMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+          )}>
+            {saveMessage.type === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+            {saveMessage.text}
+          </div>
+        )}
+        <div className="flex gap-2 ml-auto">
+          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={loadEnv}>
+            <RefreshCw className="w-3 h-3" /> Refresh
+          </Button>
+          <Button size="sm" className="h-8 text-xs gap-1" onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            Save Settings
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Auto-Update Configuration Panel
+// ---------------------------------------------------------------------------
+
+function AutoUpdatePanel() {
+  const [updateStatus, setUpdateStatus] = useState<{
+    autoUpdateEnabled: boolean
+    checkIntervalMinutes: number
+    lastAutoCheckAt: string | null
+    nextAutoCheckAt: string | null
+    updateAvailable: boolean
+    backgroundCheckerRunning: boolean
+  } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [checking, setChecking] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'warning'; text: string } | null>(null)
+  const [autoEnabled, setAutoEnabled] = useState(true)
+  const [intervalMinutes, setIntervalMinutes] = useState(60)
+
+  const loadStatus = useCallback(async () => {
+    try {
+      const status = await fetchUpdateStatus()
+      setUpdateStatus(status)
+      setAutoEnabled(status.autoUpdateEnabled)
+      setIntervalMinutes(status.checkIntervalMinutes)
+    } catch (err) {
+      console.error('Failed to load update status:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadStatus() }, [loadStatus])
+
+  const handleSave = async () => {
+    setSaving(true)
+    setSaveMessage(null)
+    try {
+      const result = await updateAutoUpdateSettings({
+        autoUpdateEnabled: autoEnabled,
+        checkIntervalMinutes: intervalMinutes,
+      })
+      setSaveMessage({ type: 'success', text: result.message || 'Auto-update settings saved!' })
+      await loadStatus()
+    } catch (err: any) {
+      setSaveMessage({ type: 'warning', text: `Failed: ${err.message}` })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCheckNow = async () => {
+    setChecking(true)
+    try {
+      const result = await checkForUpdates()
+      if (result.updateAvailable) {
+        setSaveMessage({ type: 'warning', text: `Update available! ${result.remoteMessage || 'New version detected.'}` })
+      } else {
+        setSaveMessage({ type: 'success', text: 'You are running the latest version.' })
+      }
+      await loadStatus()
+    } catch (err: any) {
+      setSaveMessage({ type: 'warning', text: `Check failed: ${err.message}` })
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Auto-Update Toggle */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+          <div className="flex items-center gap-2">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', autoEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground')}>
+              <RotateCcw className="w-4 h-4" />
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Automatic Updates</Label>
+              <p className="text-xs text-muted-foreground">ClawHub checks GitHub for new releases and updates automatically</p>
+            </div>
+          </div>
+          <Switch
+            checked={autoEnabled}
+            onCheckedChange={setAutoEnabled}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Check Interval */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Check Interval</Label>
+            <Badge variant="outline" className="text-[10px] h-5">Every {intervalMinutes} min</Badge>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={5}
+              max={360}
+              step={5}
+              value={intervalMinutes}
+              onChange={(e) => setIntervalMinutes(Number(e.target.value))}
+              className="flex-1 h-2 rounded-lg appearance-none cursor-pointer bg-muted accent-emerald-500"
+            />
+            <span className="text-xs text-muted-foreground w-16 text-right">{intervalMinutes} min</span>
+          </div>
+          <div className="flex justify-between text-[10px] text-muted-foreground">
+            <span>5 min</span>
+            <span>1 hour</span>
+            <span>6 hours</span>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Status Info */}
+        {updateStatus && (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-lg bg-muted/30 p-2.5">
+                <div className="text-muted-foreground mb-0.5">Background Checker</div>
+                <div className={cn('font-medium', updateStatus.backgroundCheckerRunning ? 'text-emerald-500' : 'text-muted-foreground')}>
+                  {updateStatus.backgroundCheckerRunning ? 'Running' : 'Stopped'}
+                </div>
+              </div>
+              <div className="rounded-lg bg-muted/30 p-2.5">
+                <div className="text-muted-foreground mb-0.5">Update Available</div>
+                <div className={cn('font-medium', updateStatus.updateAvailable ? 'text-amber-500' : 'text-emerald-500')}>
+                  {updateStatus.updateAvailable ? 'Yes!' : 'Up to Date'}
+                </div>
+              </div>
+              {updateStatus.lastAutoCheckAt && (
+                <div className="rounded-lg bg-muted/30 p-2.5">
+                  <div className="text-muted-foreground mb-0.5">Last Checked</div>
+                  <div className="font-medium">{new Date(updateStatus.lastAutoCheckAt).toLocaleString()}</div>
+                </div>
+              )}
+              {updateStatus.nextAutoCheckAt && (
+                <div className="rounded-lg bg-muted/30 p-2.5">
+                  <div className="text-muted-foreground mb-0.5">Next Check</div>
+                  <div className="font-medium">{new Date(updateStatus.nextAutoCheckAt).toLocaleString()}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Manual Check */}
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <RefreshCw className="w-4 h-4 text-blue-500" />
+          <span className="text-sm font-medium">Manual Check</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Check for updates right now, or use the <code className="bg-muted px-1 rounded">/status</code> slash command in chat.
+        </p>
+        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 w-full" onClick={handleCheckNow} disabled={checking}>
+          {checking ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+          Check for Updates Now
+        </Button>
+      </div>
+
+      {/* Save */}
+      <div className="flex items-center justify-between pt-2">
+        {saveMessage && (
+          <div className={cn(
+            'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
+            saveMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+          )}>
+            {saveMessage.type === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+            {saveMessage.text}
+          </div>
+        )}
+        <Button size="sm" className="h-8 text-xs gap-1 ml-auto" onClick={handleSave} disabled={saving}>
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+          Save Settings
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+// ===========================================================================
+// Main SettingsDialog — 8 tabs
+// ===========================================================================
+
 export function SettingsDialog() {
   const {
     isSettingsOpen,
@@ -406,10 +1164,14 @@ export function SettingsDialog() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <div className="px-6 pt-2">
-            <TabsList className="w-full grid grid-cols-6">
+            <TabsList className="w-full grid grid-cols-8">
               <TabsTrigger value="providers" className="text-xs gap-1">
                 <Globe className="w-3.5 h-3.5" />
                 Providers
+              </TabsTrigger>
+              <TabsTrigger value="apikeys" className="text-xs gap-1">
+                <Key className="w-3.5 h-3.5" />
+                API Keys
               </TabsTrigger>
               <TabsTrigger value="agent" className="text-xs gap-1">
                 <Shield className="w-3.5 h-3.5" />
@@ -419,9 +1181,13 @@ export function SettingsDialog() {
                 <Wrench className="w-3.5 h-3.5" />
                 Tools
               </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="text-xs gap-1">
-                <MessageCircle className="w-3.5 h-3.5" />
-                WhatsApp
+              <TabsTrigger value="messaging" className="text-xs gap-1">
+                <Send className="w-3.5 h-3.5" />
+                Messaging
+              </TabsTrigger>
+              <TabsTrigger value="updates" className="text-xs gap-1">
+                <RotateCcw className="w-3.5 h-3.5" />
+                Updates
               </TabsTrigger>
               <TabsTrigger value="appearance" className="text-xs gap-1">
                 <Palette className="w-3.5 h-3.5" />
@@ -435,7 +1201,7 @@ export function SettingsDialog() {
           </div>
 
           <ScrollArea className="flex-1 max-h-[65vh]">
-            {/* Providers Tab */}
+            {/* ── Providers Tab ── */}
             <TabsContent value="providers" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -622,7 +1388,12 @@ export function SettingsDialog() {
               </div>
             </TabsContent>
 
-            {/* Agent Tab */}
+            {/* ── API Keys Tab ── */}
+            <TabsContent value="apikeys" className="p-6 pt-4 m-0">
+              <ApiKeysPanel />
+            </TabsContent>
+
+            {/* ── Agent Tab ── */}
             <TabsContent value="agent" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -718,17 +1489,22 @@ export function SettingsDialog() {
               </div>
             </TabsContent>
 
-            {/* Tools Tab */}
+            {/* ── Tools Tab ── */}
             <TabsContent value="tools" className="p-6 pt-4 space-y-4 m-0">
               <ToolsConfigurationPanel />
             </TabsContent>
 
-            {/* WhatsApp Tab */}
-            <TabsContent value="whatsapp" className="p-6 pt-4 m-0">
-              <WhatsAppPanel />
+            {/* ── Messaging Tab ── */}
+            <TabsContent value="messaging" className="p-6 pt-4 m-0">
+              <MessagingConfigPanel />
             </TabsContent>
 
-            {/* Appearance Tab */}
+            {/* ── Updates Tab ── */}
+            <TabsContent value="updates" className="p-6 pt-4 m-0">
+              <AutoUpdatePanel />
+            </TabsContent>
+
+            {/* ── Appearance Tab ── */}
             <TabsContent value="appearance" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -745,7 +1521,7 @@ export function SettingsDialog() {
               </div>
             </TabsContent>
 
-            {/* Data Tab */}
+            {/* ── Data Tab ── */}
             <TabsContent value="data" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">

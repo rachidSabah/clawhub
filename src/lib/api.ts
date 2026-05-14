@@ -631,3 +631,35 @@ export async function updateAutoUpdateSettings(data: {
     body: JSON.stringify(data),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Environment Settings (.env file read/write from Dashboard)
+// ---------------------------------------------------------------------------
+
+export interface EnvEntry {
+  value: string
+  masked: boolean
+  source: 'file' | 'runtime' | 'default'
+}
+
+export interface EnvSettingsResponse {
+  env: Record<string, EnvEntry>
+  categories: Record<string, string[]>
+  restartRequired: boolean
+}
+
+export async function fetchEnvSettings(): Promise<EnvSettingsResponse> {
+  return request<EnvSettingsResponse>('/api/settings/env')
+}
+
+export async function updateEnvSettings(updates: Record<string, string>): Promise<{
+  success: boolean
+  message: string
+  updatedKeys: string[]
+  restartRequired: boolean
+}> {
+  return request('/api/settings/env', {
+    method: 'PUT',
+    body: JSON.stringify({ updates }),
+  })
+}

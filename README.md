@@ -399,7 +399,7 @@ clawhub/
 │   │   │   ├── InputBar.tsx             # Streaming input + slash commands
 │   │   │   ├── ModelSelector.tsx        # Model dropdown
 │   │   │   ├── RightPanel.tsx           # 10-tab inspector
-│   │   │   ├── SettingsDialog.tsx       # 6-tab settings
+│   │   │   ├── SettingsDialog.tsx       # 8-tab settings
 │   │   │   ├── CommandPalette.tsx       # Ctrl+K command palette
 │   │   │   ├── TokenUsagePanel.tsx      # Token/cost dashboard
 │   │   │   ├── ImageGenerationPanel.tsx # AI image generation
@@ -443,8 +443,32 @@ clawhub/
 
 ## 🔧 Configuration
 
-### Environment Variables
-Create a `.env` file in the project root. See [`.env.example`](.env.example) for the full reference with 50+ variables.
+All configuration is managed through the **Dashboard Settings** (gear icon or `Ctrl+,`). No need to edit `.env` files manually!
+
+### Dashboard Settings Tabs
+
+| Tab | What You Can Configure |
+|-----|----------------------|
+| **Providers** | Browse 31+ provider registry, add/remove providers, fetch models |
+| **API Keys** | Set all AI provider API keys (Anthropic, OpenAI, DeepSeek, Gemini, etc.) — stored securely in your local `.env` |
+| **Agent** | God Mode / Safe Mode, auto-approve, daemon, workspace dir, memory, reflection, system prompt |
+| **Tools** | Enable/disable 48 AI tools, set approval requirements per tool |
+| **Messaging** | Telegram, Discord, Slack, Signal, Home Assistant tokens + WhatsApp Bridge — all from one panel |
+| **Updates** | Toggle auto-update, set check interval, manual check, view update status |
+| **Theme** | Light / Dark / System theme |
+| **Data** | Export chat history, clear all data |
+
+### Quick Setup (First Launch)
+
+1. Open **http://localhost:3000** in your browser
+2. Click the **gear icon** (⚙️) or press `Ctrl+,`
+3. Go to **API Keys** tab → enter your AI provider key(s)
+4. Go to **Providers** tab → add providers from the registry
+5. Start chatting!
+
+### Advanced: Environment Variables
+
+For Docker or headless deployments, you can also set environment variables directly. See [`.env.example`](.env.example) for the full reference with 50+ variables.
 
 Key variables:
 ```env
