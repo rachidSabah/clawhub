@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { ThemeToggle } from './ThemeToggle'
 import { SettingsDialog } from './SettingsDialog'
@@ -9,6 +9,9 @@ import { ChatWindow } from './ChatWindow'
 import { InputBar } from './InputBar'
 import { ModelSelector } from './ModelSelector'
 import { RightPanel } from './RightPanel'
+import { CommandPalette } from './CommandPalette'
+import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog'
+import { NotificationCenter } from './NotificationCenter'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,6 +22,7 @@ import {
   Terminal,
   PanelRightClose,
   PanelRight,
+  HelpCircle,
 } from 'lucide-react'
 
 export function AppLayout() {
@@ -29,6 +33,7 @@ export function AppLayout() {
     activeProvider, loadProviders, loadSettings, loadConversations,
     isRightPanelOpen, toggleRightPanel,
   } = useAppStore()
+  const [isShortcutsOpen, setShortcutsOpen] = useState(false)
 
   useEffect(() => {
     loadProviders()
@@ -69,7 +74,11 @@ export function AppLayout() {
               onClick={toggleRightPanel}>
               {isRightPanelOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
             </Button>
+            <NotificationCenter />
             <ThemeToggle />
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShortcutsOpen(true)}>
+              <HelpCircle className="w-4 h-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(true)}>
               <Settings className="w-4 h-4" />
             </Button>
@@ -85,6 +94,8 @@ export function AppLayout() {
       </div>
 
       <SettingsDialog />
+      <KeyboardShortcutsDialog open={isShortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <CommandPalette />
     </div>
   )
 }

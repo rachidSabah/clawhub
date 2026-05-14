@@ -82,6 +82,13 @@ export async function deleteConversation(id: string): Promise<void> {
   return request<void>(`/api/conversations/${id}`, { method: 'DELETE' })
 }
 
+export async function branchConversation(conversationId: string, messageId: string): Promise<Conversation> {
+  return request<Conversation>(`/api/conversations/${conversationId}/branch`, {
+    method: 'POST',
+    body: JSON.stringify({ messageId }),
+  })
+}
+
 // ---------------------------------------------------------------------------
 // Messages
 // ---------------------------------------------------------------------------

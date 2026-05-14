@@ -8,9 +8,12 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MessageSquarePlus, Bot, Trash2, Clock, FolderOpen, Plus, Cpu, Code2, Monitor, Sparkles, Play, Zap, ChevronDown, ChevronRight } from 'lucide-react'
+import { MessageSquarePlus, Bot, Trash2, Clock, FolderOpen, Plus, Cpu, Code2, Monitor, Sparkles, Play, Zap, ChevronDown, ChevronRight, Store, FileText, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isToday, isYesterday, subDays } from 'date-fns'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AgentGallery } from './AgentGallery'
+import { DocumentsPanel } from './DocumentsPanel'
 
 const PREBUILT_AGENTS = [
   { id: 'clawhub-agent', name: 'ClawHub Agent', desc: 'Full AI capacity', icon: Sparkles, color: 'from-violet-500 to-purple-600' },
@@ -26,6 +29,7 @@ export function Sidebar() {
   const [newCronSchedule, setNewCronSchedule] = useState('*/5 * * * *')
   const [newCronCommand, setNewCronCommand] = useState('')
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
+  const [galleryOpen, setGalleryOpen] = useState(false)
 
   useEffect(() => { loadCronJobs(); loadWorkspaces(); loadSwarmAgents() }, [loadCronJobs, loadWorkspaces, loadSwarmAgents])
 
@@ -94,12 +98,13 @@ export function Sidebar() {
       {/* Tabs */}
       <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex-1 flex flex-col min-h-0">
         <div className="shrink-0 px-2 pt-2">
-          <TabsList className="w-full grid grid-cols-5 h-7">
+          <TabsList className="w-full grid grid-cols-6 h-7">
             <TabsTrigger value="chats" className="text-[10px] gap-0.5"><MessageSquarePlus className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="models" className="text-[10px] gap-0.5"><Cpu className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="workspaces" className="text-[10px] gap-0.5"><FolderOpen className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="cron" className="text-[10px] gap-0.5"><Clock className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="agents" className="text-[10px] gap-0.5"><Bot className="w-3 h-3" /></TabsTrigger>
+            <TabsTrigger value="documents" className="text-[10px] gap-0.5"><FileText className="w-3 h-3" /></TabsTrigger>
           </TabsList>
         </div>
 
@@ -113,7 +118,10 @@ export function Sidebar() {
                   {items.map(conv => (
                     <div key={conv.id} className={cn('group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs mb-0.5 transition-colors', activeConversationId === conv.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50')}
                       onClick={() => handleSelect(conv.id)}>
-                      {conv.mode === 'agent' ? <Bot className="w-3.5 h-3.5 shrink-0 text-emerald-500" /> : <MessageSquarePlus className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
+                      <div className="shrink-0 flex items-center gap-0.5">
+                        {conv.mode === 'agent' ? <Bot className="w-3.5 h-3.5 text-emerald-500" /> : <MessageSquarePlus className="w-3.5 h-3.5 text-muted-foreground" />}
+                        {conv.title.startsWith('Branch:') && <GitBranch className="w-3 h-3 text-violet-500" />}
+                      </div>
                       <span className="truncate flex-1">{conv.title}</span>
                       <div className="opacity-0 group-hover:opacity-100 flex gap-0.5 transition-opacity">
                         <button onClick={e => { e.stopPropagation(); handleDelete(conv.id) }} className="p-0.5 rounded hover:bg-destructive/20 hover:text-destructive"><Trash2 className="w-3 h-3" /></button>
@@ -178,8 +186,16 @@ export function Sidebar() {
             {cronJobs.length === 0 && <div className="text-xs text-muted-foreground text-center py-4">No cron jobs yet</div>}
           </TabsContent>
 
+          {/* Documents Tab */}
+          <TabsContent value="documents" className="p-0 m-0">
+            <DocumentsPanel />
+          </TabsContent>
+
           {/* Agents Tab */}
           <TabsContent value="agents" className="p-2 m-0 space-y-1.5">
+            <Button variant="outline" size="sm" className="w-full h-7 text-xs gap-1.5" onClick={() => setGalleryOpen(true)}>
+              <Store className="w-3.5 h-3.5" /> Browse Gallery
+            </Button>
             {swarmAgents.map(a => (
               <div key={a.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg border border-border text-xs">
                 <div className={cn('w-2 h-2 rounded-full', a.status === 'running' ? 'bg-emerald-500' : a.status === 'error' ? 'bg-destructive' : 'bg-muted-foreground')} />
@@ -191,6 +207,19 @@ export function Sidebar() {
           </TabsContent>
         </ScrollArea>
       </Tabs>
+
+      {/* Agent Gallery Dialog */}
+      <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] p-0">
+          <DialogHeader className="px-4 pt-4 pb-0">
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <Store className="w-4 h-4" />
+              Agent Template Gallery
+            </DialogTitle>
+          </DialogHeader>
+          <AgentGallery />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

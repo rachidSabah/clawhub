@@ -48,10 +48,170 @@ import {
   Monitor,
   Code2,
   Settings2,
+  Wrench,
 } from 'lucide-react'
 import type { ProviderType, ModelInfo, HermesProviderDef } from '@/lib/types'
 import { McpConfigPanel } from './McpConfigPanel'
 import { WhatsAppPanel } from './WhatsAppPanel'
+
+// ---------------------------------------------------------------------------
+// Tool category icons & colors
+// ---------------------------------------------------------------------------
+const TOOL_CATEGORY_META: Record<string, { icon: typeof Wrench; color: string; label: string }> = {
+  search: { icon: Search, color: 'bg-blue-500/10 text-blue-500', label: 'Search' },
+  code: { icon: Code2, color: 'bg-cyan-500/10 text-cyan-500', label: 'Code' },
+  file: { icon: Database, color: 'bg-amber-500/10 text-amber-500', label: 'File' },
+  media: { icon: Palette, color: 'bg-pink-500/10 text-pink-500', label: 'Media' },
+  memory: { icon: Bot, color: 'bg-violet-500/10 text-violet-500', label: 'Memory' },
+  system: { icon: Monitor, color: 'bg-red-500/10 text-red-500', label: 'System' },
+}
+
+interface ToolInfo {
+  name: string
+  description: string
+  parameters: Record<string, { type: string; description: string; required?: boolean }>
+  category: string
+  enabled: boolean
+  requiresApproval: boolean
+}
+
+function ToolsConfigurationPanel() {
+  const [tools, setTools] = useState<ToolInfo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [categoryFilter, setCategoryFilter] = useState('all')
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/tools')
+        const data = await res.json()
+        const loaded: ToolInfo[] = (data.tools || []).map((t: any) => ({
+          ...t,
+          enabled: true,
+          requiresApproval: t.category === 'system',
+        }))
+        setTools(loaded)
+      } catch (err) {
+        console.error('Failed to load tools:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  const toggleTool = (name: string) => {
+    setTools(prev => prev.map(t => t.name === name ? { ...t, enabled: !t.enabled } : t))
+  }
+
+  const toggleApproval = (name: string) => {
+    setTools(prev => prev.map(t => t.name === name ? { ...t, requiresApproval: !t.requiresApproval } : t))
+  }
+
+  const filtered = categoryFilter === 'all' ? tools : tools.filter(t => t.category === categoryFilter)
+  const categories = ['all', ...Array.from(new Set(tools.map(t => t.category)))]
+  const enabledCount = tools.filter(t => t.enabled).length
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wrench className="w-4 h-4 text-cyan-500" />
+            <span className="text-sm font-medium">Tool Configuration</span>
+          </div>
+          <Badge variant="outline" className="text-[10px] h-5">
+            {enabledCount}/{tools.length} enabled
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Configure which tools are available for agents during conversations. System tools can require manual approval before execution.
+        </p>
+
+        <div className="flex flex-wrap gap-1">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors',
+                categoryFilter === cat ? 'bg-cyan-500 text-white' : 'bg-muted text-muted-foreground hover:bg-accent'
+              )}
+            >
+              {cat === 'all' ? 'All' : TOOL_CATEGORY_META[cat]?.label || cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {filtered.map(tool => {
+          const meta = TOOL_CATEGORY_META[tool.category] || { icon: Wrench, color: 'bg-gray-500/10 text-gray-500', label: tool.category }
+          const CatIcon = meta.icon
+          return (
+            <div key={tool.name} className="rounded-xl border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', meta.color)}>
+                    <CatIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{tool.name}</span>
+                      <Badge variant="outline" className="text-[8px] h-4 px-1">{meta.label}</Badge>
+                      {!tool.enabled && <Badge variant="secondary" className="text-[8px] h-4 px-1 text-muted-foreground">Disabled</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
+                  </div>
+                </div>
+                <Switch checked={tool.enabled} onCheckedChange={() => toggleTool(tool.name)} />
+              </div>
+
+              {tool.enabled && (
+                <>
+                  <Separator />
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">Parameters:</span>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {Object.entries(tool.parameters).map(([key, param]) => (
+                        <div key={key} className="flex items-center gap-1.5 rounded-lg bg-muted/30 px-2 py-1">
+                          <code className="text-[10px] font-mono text-foreground">{key}</code>
+                          <Badge variant="outline" className="text-[8px] h-3 px-0.5">{param.type}</Badge>
+                          {param.required && <Badge className="text-[7px] h-3 px-0.5 bg-red-500/10 text-red-600 border-0">req</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {tool.category === 'system' && (
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                        <div>
+                          <span className="text-xs font-medium">Require Approval (Safe Mode)</span>
+                          <p className="text-[10px] text-muted-foreground">This tool will ask for confirmation before executing</p>
+                        </div>
+                      </div>
+                      <Switch checked={tool.requiresApproval} onCheckedChange={() => toggleApproval(tool.name)} />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 // Provider category groupings for the registry UI
 const PROVIDER_CATEGORIES = [
@@ -246,7 +406,7 @@ export function SettingsDialog() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <div className="px-6 pt-2">
-            <TabsList className="w-full grid grid-cols-5">
+            <TabsList className="w-full grid grid-cols-6">
               <TabsTrigger value="providers" className="text-xs gap-1">
                 <Globe className="w-3.5 h-3.5" />
                 Providers
@@ -254,6 +414,10 @@ export function SettingsDialog() {
               <TabsTrigger value="agent" className="text-xs gap-1">
                 <Shield className="w-3.5 h-3.5" />
                 Agent
+              </TabsTrigger>
+              <TabsTrigger value="tools" className="text-xs gap-1">
+                <Wrench className="w-3.5 h-3.5" />
+                Tools
               </TabsTrigger>
               <TabsTrigger value="whatsapp" className="text-xs gap-1">
                 <MessageCircle className="w-3.5 h-3.5" />
@@ -552,6 +716,11 @@ export function SettingsDialog() {
                 <p className="text-xs text-muted-foreground">This system prompt will be prepended to every conversation and agent task.</p>
                 <Textarea value={settings.globalSystemPrompt || ''} onChange={(e) => handleUpdateSetting('globalSystemPrompt', e.target.value)} placeholder="You are a helpful AI assistant with access to the user's local machine..." className="min-h-[120px] text-xs" />
               </div>
+            </TabsContent>
+
+            {/* Tools Tab */}
+            <TabsContent value="tools" className="p-6 pt-4 space-y-4 m-0">
+              <ToolsConfigurationPanel />
             </TabsContent>
 
             {/* WhatsApp Tab */}
