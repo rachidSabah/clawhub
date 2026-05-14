@@ -1,14 +1,32 @@
-# INFOHAS ClawHub
+<p align="center">
+  <img src="https://raw.githubusercontent.com/rachidSabah/clawhub/main/public/banner.png" alt="ClawHub Banner" width="100%" />
+</p>
 
-> **AI Desktop Dashboard — Multi-Model Orchestration, RAG, Agent Gallery & Cron Automation**
+<h1 align="center">INFOHAS ClawHub</h1>
 
-![ClawHub](https://img.shields.io/badge/INFOHAS-ClawHub-emerald?style=for-the-badge)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20WSL%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-![API Routes](https://img.shields.io/badge/API_Routes-68+-orange?style=flat-square)
-![Providers](https://img.shields.io/badge/AI_Providers-31+-purple?style=flat-square)
-![Tools](https://img.shields.io/badge/Tools-48-red?style=flat-square)
-![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?style=flat-square&logo=docker)
+<p align="center">
+  <strong>AI Desktop Dashboard — Multi-Model Orchestration, RAG, Agent Gallery & Cron Automation</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/INFOHAS-ClawHub-emerald?style=for-the-badge" alt="ClawHub" />
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20WSL%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square" alt="Platform" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/API_Routes-71+-orange?style=flat-square" alt="API Routes" />
+  <img src="https://img.shields.io/badge/AI_Providers-31+-purple?style=flat-square" alt="Providers" />
+  <img src="https://img.shields.io/badge/Tools-48-red?style=flat-square" alt="Tools" />
+  <img src="https://img.shields.io/badge/Docker-Supported-2496ED?style=flat-square&logo=docker" alt="Docker" />
+  <img src="https://img.shields.io/badge/Auto_Update-Enabled-brightgreen?style=flat-square" alt="Auto Update" />
+</p>
+
+<p align="center">
+  <a href="#-one-line-install">Install</a> •
+  <a href="#-docker">Docker</a> •
+  <a href="#-features">Features</a> •
+  <a href="#-configuration">Configuration</a> •
+  <a href="CONTRIBUTING.md">Contributing</a> •
+  <a href="#-license">License</a>
+</p>
 
 ---
 
@@ -509,11 +527,24 @@ caddy run
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+We welcome contributions of all kinds! Whether it's a bug fix, new feature, documentation improvement, or new AI provider integration.
+
+Please read our **[Contributing Guide](CONTRIBUTING.md)** for detailed instructions on:
+
+- Development setup and project structure
+- Coding standards and commit message conventions
+- How to add new AI providers, tools, and messaging platforms
+- Pull request process and review criteria
+- Reporting bugs and suggesting features
+
+**Quick start for contributors:**
+```bash
+git clone https://github.com/rachidSabah/clawhub.git
+ cd clawhub
+npm install --legacy-peer-deps
+npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts
+npm run dev
+```
 
 ---
 
