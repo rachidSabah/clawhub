@@ -50,5 +50,25 @@ test
 prompt
 
 server.log
+
 # Skills directory
 /skills/
+
+# Database
+db/*.db
+db/*.db-journal
+
+# WhatsApp session data
+mini-services/whatsapp-bridge/.wwebjs_auth/
+
+# Uploads
+uploads/
+
+# Temp files
+tmp/
+
+# Agent context
+agent-ctx/
+
+# Worklog
+worklog.md
