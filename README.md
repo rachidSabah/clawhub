@@ -12,17 +12,17 @@
 
 ### Linux / WSL / macOS
 ```bash
-curl -fsSL https://raw.githubusercontent.com/infohas/clawhub/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 ```powershell
-irm https://raw.githubusercontent.com/infohas/clawhub/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.ps1 | iex
 ```
 
 ### Manual Install
 ```bash
-git clone https://github.com/infohas/clawhub.git
+git clone https://github.com/rachidSabah/clawhub.git
 cd clawhub
 npm install
 npx prisma db push
@@ -186,7 +186,7 @@ cd mini-services/agent-ws && npm start
 
 ### Docker (Coming Soon)
 ```bash
-docker pull ghcr.io/infohas/clawhub:latest
+docker pull ghcr.io/rachidsabah/clawhub:latest
 docker run -p 3000:3000 -p 3003:3003 -p 3004:3004 clawhub
 ```
 

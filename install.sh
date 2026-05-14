@@ -2,8 +2,8 @@
 # ============================================================================
 # INFOHAS ClawHub — One-Line Installer
 # ============================================================================
-# Install: curl -fsSL https://raw.githubusercontent.com/infohas/clawhub/main/install.sh | bash
-# Or:      wget -qO- https://raw.githubusercontent.com/infohas/clawhub/main/install.sh | bash
+# Install: curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
+# Or:      wget -qO- https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
 # ============================================================================
 
 set -e
@@ -136,7 +136,7 @@ install_clawhub() {
     cd "$install_dir"
     git pull -q 2>/dev/null || echo -e "${YELLOW}[WARN]${NC} Could not pull, using existing code"
   else
-    git clone -q https://github.com/infohas/clawhub.git "$install_dir"
+    git clone -q https://github.com/rachidSabah/clawhub.git "$install_dir"
     cd "$install_dir"
   fi
 

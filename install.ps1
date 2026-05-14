@@ -54,7 +54,7 @@ if (Test-Path $installDir) {
     Set-Location $installDir
     git pull -q 2>$null
 } else {
-    git clone -q https://github.com/infohas/clawhub.git $installDir
+    git clone -q https://github.com/rachidSabah/clawhub.git $installDir
     Set-Location $installDir
 }
 
