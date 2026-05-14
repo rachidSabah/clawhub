@@ -399,7 +399,7 @@ clawhub/
 │   │   │   ├── InputBar.tsx             # Streaming input + slash commands
 │   │   │   ├── ModelSelector.tsx        # Model dropdown
 │   │   │   ├── RightPanel.tsx           # 10-tab inspector
-│   │   │   ├── SettingsDialog.tsx       # 8-tab settings
+│   │   │   ├── SettingsDialog.tsx       # 10-tab settings
 │   │   │   ├── CommandPalette.tsx       # Ctrl+K command palette
 │   │   │   ├── TokenUsagePanel.tsx      # Token/cost dashboard
 │   │   │   ├── ImageGenerationPanel.tsx # AI image generation
@@ -443,7 +443,7 @@ clawhub/
 
 ## 🔧 Configuration
 
-All configuration is managed through the **Dashboard Settings** (gear icon or `Ctrl+,`). No need to edit `.env` files manually!
+All configuration is managed through the **Dashboard Settings** (gear icon or `Ctrl+,`). No need to edit `.env` files or run terminal commands!
 
 ### Dashboard Settings Tabs
 
@@ -455,6 +455,8 @@ All configuration is managed through the **Dashboard Settings** (gear icon or `C
 | **Tools** | Enable/disable 48 AI tools, set approval requirements per tool |
 | **Messaging** | Telegram, Discord, Slack, Signal, Home Assistant tokens + WhatsApp Bridge — all from one panel |
 | **Updates** | Toggle auto-update, set check interval, manual check, view update status |
+| **Services** | Start/stop/restart all mini-services (Agent WS, WhatsApp, Messaging Gateway) with one click |
+| **Database** | Run Prisma operations — generate, push, seed, migrate, reset, open Studio — no terminal needed |
 | **Theme** | Light / Dark / System theme |
 | **Data** | Export chat history, clear all data |
 
@@ -464,7 +466,33 @@ All configuration is managed through the **Dashboard Settings** (gear icon or `C
 2. Click the **gear icon** (⚙️) or press `Ctrl+,`
 3. Go to **API Keys** tab → enter your AI provider key(s)
 4. Go to **Providers** tab → add providers from the registry
-5. Start chatting!
+5. Go to **Services** tab → click **"Start All"** to launch mini-services
+6. Start chatting!
+
+### Service Management (One Click)
+
+No more opening separate terminals! Start and stop all services from the **Services** tab:
+
+| Service | Port | Start Command |
+|---------|------|---------------|
+| **ClawHub Dashboard** | 3000 | `npm run dev` |
+| **Agent WebSocket** | 3003 | `npx tsx index.ts` |
+| **WhatsApp Bridge** | 3004 | `node index.js` |
+| **Messaging Gateway** | 3005 | `npx tsx index.ts` |
+
+### Database Management (One Click)
+
+Run Prisma operations from the **Database** tab — no terminal needed:
+
+| Operation | Description |
+|-----------|-------------|
+| **Generate Client** | Regenerate Prisma client from schema |
+| **Push Schema** | Push schema changes to database |
+| **Create Migration** | Create and apply a new migration |
+| **Seed Database** | Re-seed providers, agents, and default settings |
+| **Full Setup** | Generate + Push + Seed in one step |
+| **Open Prisma Studio** | Launch visual database browser at localhost:5555 |
+| **Reset Database** | Reset everything from scratch (destructive) |
 
 ### Advanced: Environment Variables
 
@@ -494,31 +522,25 @@ AUTO_UPDATE_ENABLED=true
 AUTO_UPDATE_INTERVAL_MINUTES=60
 ```
 
-### Start the Application
+### Advanced: Manual Commands
+
+If you prefer the terminal, these commands are also available:
+
 ```bash
-# Development mode (hot reload)
-npm run dev
+# Start the application
+npm run dev                    # Development mode (hot reload)
+npm run build && npm start     # Production mode
 
-# Production mode
-npm run build
-npm start
-
-# WhatsApp bridge (optional, separate terminal)
+# Mini-services (or use the Services tab in Dashboard)
 cd mini-services/whatsapp-bridge && npm start
-
-# Agent WebSocket service (optional, separate terminal)
 cd mini-services/agent-ws && npm start
-
-# Messaging Gateway (optional, separate terminal)
 cd mini-services/messaging-gateway && npm start
-```
 
-### Database Management
-```bash
-npx prisma db push      # Push schema changes
-npx prisma generate     # Regenerate Prisma client
-npx prisma studio       # Open database browser
-npx tsx prisma/seed.ts  # Re-seed providers and agents
+# Database (or use the Database tab in Dashboard)
+npx prisma db push             # Push schema changes
+npx prisma generate            # Regenerate Prisma client
+npx prisma studio              # Open database browser
+npx tsx prisma/seed.ts         # Re-seed providers and agents
 ```
 
 ---

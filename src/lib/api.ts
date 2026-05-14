@@ -663,3 +663,82 @@ export async function updateEnvSettings(updates: Record<string, string>): Promis
     body: JSON.stringify({ updates }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Service Management (start/stop mini-services from Dashboard)
+// ---------------------------------------------------------------------------
+
+export interface ServiceInfo {
+  id: string
+  name: string
+  description: string
+  port: number
+  optional: boolean
+  status: 'running' | 'starting' | 'stopped'
+  pid: number | null
+  directory: string
+  startCommand: string
+  dirExists: boolean
+}
+
+export async function fetchServices(): Promise<{
+  services: ServiceInfo[]
+  total: number
+  running: number
+  stopped: number
+}> {
+  return request('/api/services')
+}
+
+export async function serviceAction(
+  serviceId: string,
+  action: 'start' | 'stop' | 'restart' | 'start-all' | 'stop-all'
+): Promise<{
+  action: string
+  serviceId?: string
+  result?: string
+  results?: Record<string, string>
+}> {
+  return request('/api/services', {
+    method: 'POST',
+    body: JSON.stringify({ serviceId, action }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Database Management (Prisma operations from Dashboard)
+// ---------------------------------------------------------------------------
+
+export interface DbOperation {
+  id: string
+  name: string
+  description: string
+  command: string
+  confirmRequired: boolean
+  category: 'schema' | 'data' | 'tools'
+}
+
+export async function fetchDbOperations(): Promise<{
+  operations: DbOperation[]
+  database: { url: string; provider: string }
+}> {
+  return request('/api/database')
+}
+
+export async function executeDbOperation(
+  operation: string,
+  confirm = false
+): Promise<{
+  success: boolean
+  operation: string
+  name: string
+  command: string
+  stdout: string
+  stderr: string
+  exitCode?: number
+}> {
+  return request('/api/database', {
+    method: 'POST',
+    body: JSON.stringify({ operation, confirm }),
+  })
+}

@@ -6,6 +6,7 @@ import {
   createProvider, updateProvider, deleteProvider, fetchProviderModels,
   updateSettings, HERMES_PROVIDERS, fetchEnvSettings, updateEnvSettings,
   fetchUpdateStatus, updateAutoUpdateSettings, checkForUpdates,
+  fetchServices, serviceAction, fetchDbOperations, executeDbOperation,
 } from '@/lib/api'
 import type { EnvEntry } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -62,6 +63,9 @@ import {
   Save,
   AlertTriangle,
   CheckCircle2,
+  Play,
+  Square,
+  Terminal,
 } from 'lucide-react'
 import type { ProviderType, ModelInfo, HermesProviderDef } from '@/lib/types'
 import { WhatsAppPanel } from './WhatsAppPanel'
@@ -1039,7 +1043,312 @@ function AutoUpdatePanel() {
 }
 
 // ===========================================================================
-// Main SettingsDialog — 8 tabs
+// Services Manager Panel
+// ===========================================================================
+
+function ServicesManagerPanel() {
+  const [services, setServices] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [acting, setActing] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'warning'; text: string } | null>(null)
+
+  const loadServices = useCallback(async () => {
+    try {
+      const data = await fetchServices()
+      setServices(data.services)
+    } catch (err) {
+      console.error('Failed to load services:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadServices() }, [loadServices])
+
+  const handleAction = async (serviceId: string, action: 'start' | 'stop' | 'restart') => {
+    setActing(serviceId)
+    setMessage(null)
+    try {
+      const result = await serviceAction(serviceId, action)
+      setMessage({ type: 'success', text: result.result || result.results?.[serviceId] || `${action} initiated` })
+      setTimeout(() => loadServices(), 1500)
+    } catch (err: any) {
+      setMessage({ type: 'warning', text: `Failed: ${err.message}` })
+    } finally {
+      setActing(null)
+    }
+  }
+
+  const handleStartAll = async () => {
+    setActing('all')
+    setMessage(null)
+    try {
+      const result = await serviceAction('', 'start-all')
+      setMessage({ type: 'success', text: 'All services starting...' })
+      setTimeout(() => loadServices(), 2000)
+    } catch (err: any) {
+      setMessage({ type: 'warning', text: `Failed: ${err.message}` })
+    } finally {
+      setActing(null)
+    }
+  }
+
+  const handleStopAll = async () => {
+    setActing('all-stop')
+    setMessage(null)
+    try {
+      const result = await serviceAction('', 'stop-all')
+      setMessage({ type: 'success', text: 'All services stopping...' })
+      setTimeout(() => loadServices(), 1500)
+    } catch (err: any) {
+      setMessage({ type: 'warning', text: `Failed: ${err.message}` })
+    } finally {
+      setActing(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const runningCount = services.filter(s => s.status === 'running').length
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Server className="w-4 h-4 text-blue-500" />
+            <span className="text-sm font-medium">Service Manager</span>
+          </div>
+          <Badge variant="outline" className="text-[10px] h-5">
+            {runningCount}/{services.length} running
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Start and stop ClawHub services with one click. No need to open separate terminals.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 flex-1" onClick={handleStartAll} disabled={acting === 'all'}>
+            {acting === 'all' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />} Start All
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1 flex-1" onClick={handleStopAll} disabled={acting === 'all-stop'}>
+            {acting === 'all-stop' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />} Stop All
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={loadServices}>
+            <RefreshCw className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+
+      {services.map(svc => (
+        <div key={svc.id} className="rounded-xl border border-border p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                'w-9 h-9 rounded-lg flex items-center justify-center',
+                svc.status === 'running' ? 'bg-emerald-500/10 text-emerald-500' :
+                svc.status === 'starting' ? 'bg-amber-500/10 text-amber-500' :
+                'bg-muted text-muted-foreground'
+              )}>
+                <Server className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{svc.name}</span>
+                  <Badge className={cn(
+                    'text-[8px] h-4 px-1.5 border-0',
+                    svc.status === 'running' ? 'bg-emerald-500/10 text-emerald-600' :
+                    svc.status === 'starting' ? 'bg-amber-500/10 text-amber-600' :
+                    'bg-muted text-muted-foreground'
+                  )}>
+                    {svc.status}
+                  </Badge>
+                  {svc.optional && <Badge variant="outline" className="text-[8px] h-4 px-1">Optional</Badge>}
+                </div>
+                <p className="text-xs text-muted-foreground">{svc.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px] h-5 font-mono">:{svc.port}</Badge>
+              {svc.pid && <span className="text-[10px] text-muted-foreground">PID {svc.pid}</span>}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            <code className="bg-muted/50 px-2 py-1 rounded font-mono text-[10px] flex-1 truncate">{svc.startCommand}</code>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {svc.status === 'running' ? (
+              <>
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleAction(svc.id, 'restart')} disabled={acting === svc.id}>
+                  {acting === svc.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Restart
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-destructive hover:text-destructive" onClick={() => handleAction(svc.id, 'stop')} disabled={acting === svc.id}>
+                  <Square className="w-3 h-3" /> Stop
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" className="h-7 text-xs gap-1" onClick={() => handleAction(svc.id, 'start')} disabled={acting === svc.id}>
+                {acting === svc.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />} Start
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {message && (
+        <div className={cn(
+          'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
+          message.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+        )}>
+          {message.type === 'success' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+          {message.text}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ===========================================================================
+// Database Manager Panel
+// ===========================================================================
+
+function DatabaseManagerPanel() {
+  const [operations, setOperations] = useState<any[]>([])
+  const [dbInfo, setDbInfo] = useState({ url: '', provider: '' })
+  const [loading, setLoading] = useState(true)
+  const [executing, setExecuting] = useState<string | null>(null)
+  const [output, setOutput] = useState<{ operation: string; success: boolean; stdout: string; stderr: string } | null>(null)
+
+  const loadOps = useCallback(async () => {
+    try {
+      const data = await fetchDbOperations()
+      setOperations(data.operations)
+      setDbInfo(data.database)
+    } catch (err) {
+      console.error('Failed to load db operations:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { loadOps() }, [loadOps])
+
+  const handleExecute = async (op: any) => {
+    if (op.confirmRequired && !confirm(`Are you sure? "${op.name}" will permanently reset your database. ALL DATA WILL BE LOST!`)) {
+      return
+    }
+    setExecuting(op.id)
+    setOutput(null)
+    try {
+      const result = await executeDbOperation(op.id, op.confirmRequired)
+      setOutput(result)
+    } catch (err: any) {
+      setOutput({ operation: op.id, success: false, stdout: '', stderr: err.message })
+    } finally {
+      setExecuting(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  const categories = [
+    { key: 'schema', label: 'Schema Operations', icon: Database, color: 'text-blue-500' },
+    { key: 'data', label: 'Data Operations', icon: Bot, color: 'text-emerald-500' },
+    { key: 'tools', label: 'Database Tools', icon: Terminal, color: 'text-violet-500' },
+  ]
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-cyan-500" />
+            <span className="text-sm font-medium">Database Manager</span>
+          </div>
+          <Badge variant="outline" className="text-[10px] h-5">{dbInfo.provider}</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Run Prisma database operations with one click. No terminal needed.
+        </p>
+        <div className="text-xs font-mono text-muted-foreground bg-muted/30 rounded-lg px-3 py-1.5 truncate">
+          {dbInfo.url}
+        </div>
+      </div>
+
+      {categories.map(cat => {
+        const catOps = operations.filter(op => op.category === cat.key)
+        if (catOps.length === 0) return null
+        const CatIcon = cat.icon
+        return (
+          <div key={cat.key} className="space-y-2">
+            <div className="flex items-center gap-1.5">
+              <CatIcon className={cn('w-3.5 h-3.5', cat.color)} />
+              <span className="text-xs font-medium text-muted-foreground">{cat.label}</span>
+            </div>
+            {catOps.map(op => (
+              <div key={op.id} className="rounded-xl border border-border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 mr-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{op.name}</span>
+                      {op.confirmRequired && <Badge className="text-[8px] h-4 px-1 bg-red-500/10 text-red-600 border-0">Destructive</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{op.description}</p>
+                  </div>
+                  <Button
+                    variant={op.confirmRequired ? 'destructive' : 'outline'}
+                    size="sm"
+                    className="h-7 text-xs gap-1 shrink-0"
+                    onClick={() => handleExecute(op)}
+                    disabled={executing === op.id}
+                  >
+                    {executing === op.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+                    Run
+                  </Button>
+                </div>
+                <code className="text-[10px] font-mono text-muted-foreground bg-muted/30 rounded px-2 py-1 block">{op.command}</code>
+              </div>
+            ))}
+          </div>
+        )
+      })}
+
+      {output && (
+        <div className={cn(
+          'rounded-xl border p-3 space-y-2',
+          output.success ? 'border-emerald-500/20' : 'border-red-500/20'
+        )}>
+          <div className="flex items-center gap-2 text-xs">
+            {output.success ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <AlertCircle className="w-3.5 h-3.5 text-red-500" />}
+            <span className="font-medium">{output.success ? 'Success' : 'Failed'}</span>
+          </div>
+          {output.stdout && (
+            <pre className="text-[10px] font-mono text-muted-foreground bg-muted/30 rounded-lg p-2 max-h-32 overflow-y-auto whitespace-pre-wrap">{output.stdout}</pre>
+          )}
+          {output.stderr && (
+            <pre className="text-[10px] font-mono text-red-500 bg-red-500/5 rounded-lg p-2 max-h-32 overflow-y-auto whitespace-pre-wrap">{output.stderr}</pre>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ===========================================================================
+// Main SettingsDialog — 10 tabs
 // ===========================================================================
 
 export function SettingsDialog() {
@@ -1164,7 +1473,7 @@ export function SettingsDialog() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
           <div className="px-6 pt-2">
-            <TabsList className="w-full grid grid-cols-8">
+            <TabsList className="w-full grid grid-cols-10">
               <TabsTrigger value="providers" className="text-xs gap-1">
                 <Globe className="w-3.5 h-3.5" />
                 Providers
@@ -1188,6 +1497,14 @@ export function SettingsDialog() {
               <TabsTrigger value="updates" className="text-xs gap-1">
                 <RotateCcw className="w-3.5 h-3.5" />
                 Updates
+              </TabsTrigger>
+              <TabsTrigger value="services" className="text-xs gap-1">
+                <Server className="w-3.5 h-3.5" />
+                Services
+              </TabsTrigger>
+              <TabsTrigger value="database" className="text-xs gap-1">
+                <Database className="w-3.5 h-3.5" />
+                Database
               </TabsTrigger>
               <TabsTrigger value="appearance" className="text-xs gap-1">
                 <Palette className="w-3.5 h-3.5" />
@@ -1502,6 +1819,16 @@ export function SettingsDialog() {
             {/* ── Updates Tab ── */}
             <TabsContent value="updates" className="p-6 pt-4 m-0">
               <AutoUpdatePanel />
+            </TabsContent>
+
+            {/* Services Tab */}
+            <TabsContent value="services" className="p-6 pt-4 m-0">
+              <ServicesManagerPanel />
+            </TabsContent>
+
+            {/* Database Tab */}
+            <TabsContent value="database" className="p-6 pt-4 m-0">
+              <DatabaseManagerPanel />
             </TabsContent>
 
             {/* ── Appearance Tab ── */}
