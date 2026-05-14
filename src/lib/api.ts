@@ -574,3 +574,60 @@ export async function setHomeDir(path: string): Promise<AppSettings> {
     body: JSON.stringify({ agentWorkspaceDir: path }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Auto-Update
+// ---------------------------------------------------------------------------
+
+export async function checkForUpdates(): Promise<{
+  currentVersion: string
+  currentCommit?: string
+  remoteCommit?: string
+  remoteVersion?: string
+  remoteMessage?: string
+  remoteDate?: string
+  updateAvailable: boolean
+  latestRelease?: { tag: string; name: string; url: string; publishedAt: string } | null
+  lastCheckedAt: string
+}> {
+  return request('/api/updates/check')
+}
+
+export async function applyUpdate(autoRestart = true): Promise<{
+  status: string
+  message: string
+  updateLog: string[]
+}> {
+  return request('/api/updates/apply', {
+    method: 'POST',
+    body: JSON.stringify({ autoRestart }),
+  })
+}
+
+export async function fetchUpdateStatus(): Promise<{
+  autoUpdateEnabled: boolean
+  checkIntervalMinutes: number
+  lastAutoCheckAt: string | null
+  nextAutoCheckAt: string | null
+  updateAvailable: boolean
+  remoteCommit: string
+  remoteMessage: string
+  remoteDate: string
+  backgroundCheckerRunning: boolean
+}> {
+  return request('/api/updates/status')
+}
+
+export async function updateAutoUpdateSettings(data: {
+  autoUpdateEnabled?: boolean
+  checkIntervalMinutes?: number
+}): Promise<{
+  autoUpdateEnabled: boolean
+  checkIntervalMinutes: number
+  message: string
+}> {
+  return request('/api/updates/status', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
+}

@@ -12,6 +12,7 @@ import { RightPanel } from './RightPanel'
 import { CommandPalette } from './CommandPalette'
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog'
 import { NotificationCenter } from './NotificationCenter'
+import { UpdateNotification } from './UpdateNotification'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -96,6 +97,7 @@ export function AppLayout() {
       <SettingsDialog />
       <KeyboardShortcutsDialog open={isShortcutsOpen} onOpenChange={setShortcutsOpen} />
       <CommandPalette />
+      <UpdateNotification />
     </div>
   )
 }
