@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { MessageSquarePlus, Bot, Trash2, Clock, FolderOpen, Plus, Cpu, Code2, Monitor, Sparkles, Play, Zap, ChevronDown, ChevronRight, Store, FileText, GitBranch, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isToday, isYesterday, subDays } from 'date-fns'
@@ -99,15 +99,33 @@ export function Sidebar() {
       {/* Tabs */}
       <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex-1 flex flex-col min-h-0">
         <div className="shrink-0 px-2 pt-2">
-          <TabsList className="w-full grid grid-cols-7 h-7">
-            <TabsTrigger value="chats" className="text-[10px] gap-0.5"><MessageSquarePlus className="w-3 h-3" /></TabsTrigger>
-            <TabsTrigger value="models" className="text-[10px] gap-0.5"><Cpu className="w-3 h-3" /></TabsTrigger>
-            <TabsTrigger value="workspaces" className="text-[10px] gap-0.5"><FolderOpen className="w-3 h-3" /></TabsTrigger>
-            <TabsTrigger value="cron" className="text-[10px] gap-0.5"><Clock className="w-3 h-3" /></TabsTrigger>
-            <TabsTrigger value="agents" className="text-[10px] gap-0.5"><Bot className="w-3 h-3" /></TabsTrigger>
-            <TabsTrigger value="documents" className="text-[10px] gap-0.5"><FileText className="w-3 h-3" /></TabsTrigger>
-            <TabsTrigger value="kanban" className="text-[10px] gap-0.5"><LayoutGrid className="w-3 h-3" /></TabsTrigger>
-          </TabsList>
+          <div className="flex gap-0.5 overflow-x-auto">
+            {[
+              { value: 'chats', icon: MessageSquarePlus },
+              { value: 'models', icon: Cpu },
+              { value: 'workspaces', icon: FolderOpen },
+              { value: 'cron', icon: Clock },
+              { value: 'agents', icon: Bot },
+              { value: 'documents', icon: FileText },
+              { value: 'kanban', icon: LayoutGrid },
+            ].map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setSidebarTab(tab.value)}
+                  className={cn(
+                    'flex items-center justify-center flex-1 py-1.5 rounded-md text-[10px] transition-colors',
+                    sidebarTab === tab.value
+                      ? 'bg-background text-foreground shadow-sm border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <ScrollArea className="flex-1">

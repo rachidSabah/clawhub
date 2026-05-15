@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
@@ -1472,49 +1472,38 @@ export function SettingsDialog() {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-4 pt-2 overflow-x-auto">
-            <TabsList className="w-full flex flex-nowrap gap-0.5 h-auto p-1 bg-muted/50">
-              <TabsTrigger value="providers" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Globe className="w-3.5 h-3.5" />
-                Providers
-              </TabsTrigger>
-              <TabsTrigger value="apikeys" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Key className="w-3.5 h-3.5" />
-                API Keys
-              </TabsTrigger>
-              <TabsTrigger value="agent" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Shield className="w-3.5 h-3.5" />
-                Agent
-              </TabsTrigger>
-              <TabsTrigger value="tools" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Wrench className="w-3.5 h-3.5" />
-                Tools
-              </TabsTrigger>
-              <TabsTrigger value="messaging" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Send className="w-3.5 h-3.5" />
-                Messaging
-              </TabsTrigger>
-              <TabsTrigger value="updates" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <RotateCcw className="w-3.5 h-3.5" />
-                Updates
-              </TabsTrigger>
-              <TabsTrigger value="services" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Server className="w-3.5 h-3.5" />
-                Services
-              </TabsTrigger>
-              <TabsTrigger value="database" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Database className="w-3.5 h-3.5" />
-                Database
-              </TabsTrigger>
-              <TabsTrigger value="appearance" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Palette className="w-3.5 h-3.5" />
-                Theme
-              </TabsTrigger>
-              <TabsTrigger value="data" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
-                <Database className="w-3.5 h-3.5" />
-                Data
-              </TabsTrigger>
-            </TabsList>
+          <div className="px-4 pt-2">
+            <div className="flex gap-0.5 overflow-x-auto pb-1 scrollbar-thin">
+              {[
+                { value: 'providers', icon: Globe, label: 'Providers' },
+                { value: 'apikeys', icon: Key, label: 'API Keys' },
+                { value: 'agent', icon: Shield, label: 'Agent' },
+                { value: 'tools', icon: Wrench, label: 'Tools' },
+                { value: 'messaging', icon: Send, label: 'Messaging' },
+                { value: 'updates', icon: RotateCcw, label: 'Updates' },
+                { value: 'services', icon: Server, label: 'Services' },
+                { value: 'database', icon: Database, label: 'Database' },
+                { value: 'appearance', icon: Palette, label: 'Theme' },
+                { value: 'data', icon: Database, label: 'Data' },
+              ].map((tab) => {
+                const Icon = tab.icon
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors shrink-0',
+                      activeTab === tab.value
+                        ? 'bg-background text-foreground shadow-sm border border-border'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <ScrollArea className="flex-1 max-h-[65vh]">

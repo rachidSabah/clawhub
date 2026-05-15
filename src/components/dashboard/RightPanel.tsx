@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Cpu, Thermometer, Zap, Coins, Search, Image, Download, Upload, FileText, ArrowLeftRight, Shield, User, BookOpen } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { TokenUsagePanel } from './TokenUsagePanel'
 import { ImageGenerationPanel } from './ImageGenerationPanel'
 import { WebSearchPanel } from './WebSearchPanel'
@@ -86,18 +87,37 @@ export function RightPanel() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold">Inspector</span>
           </div>
-          <TabsList className="w-full flex flex-nowrap gap-0.5 h-auto p-0.5 bg-muted/50 overflow-x-auto">
-            <TabsTrigger value="model" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Zap className="w-3 h-3" /> Model</TabsTrigger>
-            <TabsTrigger value="compare" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><ArrowLeftRight className="w-3 h-3" /> Compare</TabsTrigger>
-            <TabsTrigger value="tokens" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Coins className="w-3 h-3" /> Tokens</TabsTrigger>
-            <TabsTrigger value="search" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Search className="w-3 h-3" /> Search</TabsTrigger>
-            <TabsTrigger value="image" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Image className="w-3 h-3" /> Image</TabsTrigger>
-            <TabsTrigger value="docs" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><FileText className="w-3 h-3" /> Docs</TabsTrigger>
-            <TabsTrigger value="security" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Shield className="w-3 h-3" /> Security</TabsTrigger>
-            <TabsTrigger value="profile" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><User className="w-3 h-3" /> Profile</TabsTrigger>
-            <TabsTrigger value="context" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><BookOpen className="w-3 h-3" /> Context</TabsTrigger>
-            <TabsTrigger value="export" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Download className="w-3 h-3" /> Data</TabsTrigger>
-          </TabsList>
+          <div className="flex gap-0.5 overflow-x-auto pb-1">
+            {[
+              { value: 'model', icon: Zap, label: 'Model' },
+              { value: 'compare', icon: ArrowLeftRight, label: 'Compare' },
+              { value: 'tokens', icon: Coins, label: 'Tokens' },
+              { value: 'search', icon: Search, label: 'Search' },
+              { value: 'image', icon: Image, label: 'Image' },
+              { value: 'docs', icon: FileText, label: 'Docs' },
+              { value: 'security', icon: Shield, label: 'Security' },
+              { value: 'profile', icon: User, label: 'Profile' },
+              { value: 'context', icon: BookOpen, label: 'Context' },
+              { value: 'export', icon: Download, label: 'Data' },
+            ].map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setRightPanelTab(tab.value)}
+                  className={cn(
+                    'flex items-center gap-0.5 px-1.5 py-1 rounded-md text-[9px] font-medium whitespace-nowrap transition-colors shrink-0',
+                    rightPanelTab === tab.value
+                      ? 'bg-background text-foreground shadow-sm border border-border'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                  )}
+                >
+                  <Icon className="w-3 h-3" />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <ScrollArea className="flex-1">
           <TabsContent value="model" className="p-3 m-0 space-y-2">
