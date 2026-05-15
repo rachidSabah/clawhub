@@ -46,22 +46,24 @@ The installer automatically:
 - Seeds 31+ AI providers, 4 prebuilt agents, and 12 default settings
 - Builds the production application
 
-After installation, start with:
-```bash
-cd ~/clawhub && npm run dev
-```
+After installation, the installer asks if you want to launch immediately. Or start manually:
 
-Open **http://localhost:3000** in your browser.
+| What You Want | Command |
+|---------------|--------|
+| **All services (dev)** | `cd ~/clawhub && npm run dev:all` |
+| **All services (prod)** | `cd ~/clawhub && npm run start:all` |
+| **Dashboard only** | `cd ~/clawhub && npm run dev` |
+| **Full setup + start** | `cd ~/clawhub && npm run quickstart` |
+
+Open **http://localhost:3000** in your browser. All services run in one terminal!
 
 ### Manual Install
 ```bash
 git clone https://github.com/rachidSabah/clawhub.git
 cd clawhub
 npm install --legacy-peer-deps
-npx prisma generate
-npx prisma db push
-npx tsx prisma/seed.ts
-npm run dev
+npm run setup          # generates DB, pushes schema, seeds data
+npm run dev:all        # starts all services in one terminal
 ```
 
 ### Custom Install Directory
@@ -522,25 +524,32 @@ AUTO_UPDATE_ENABLED=true
 AUTO_UPDATE_INTERVAL_MINUTES=60
 ```
 
-### Advanced: Manual Commands
+### Advanced: CLI Commands
 
-If you prefer the terminal, these commands are also available:
+All commands run from the project root — no need to `cd` into mini-services:
 
 ```bash
-# Start the application
-npm run dev                    # Development mode (hot reload)
-npm run build && npm start     # Production mode
+# One-command starts
+npm run dev:all                # Dashboard + all mini-services (dev mode)
+npm run start:all              # Dashboard + all mini-services (production)
+npm run quickstart             # Full setup + start all services
 
-# Mini-services (or use the Services tab in Dashboard)
-cd mini-services/whatsapp-bridge && npm start
-cd mini-services/agent-ws && npm start
-cd mini-services/messaging-gateway && npm start
+# Individual services
+npm run dev                    # Dashboard only (hot reload)
+npm run service:agent-ws       # Agent WebSocket only
+npm run service:whatsapp       # WhatsApp Bridge only
+npm run service:messaging      # Messaging Gateway only
 
 # Database (or use the Database tab in Dashboard)
-npx prisma db push             # Push schema changes
-npx prisma generate            # Regenerate Prisma client
-npx prisma studio              # Open database browser
-npx tsx prisma/seed.ts         # Re-seed providers and agents
+npm run setup                  # Generate + Push + Seed in one step
+npm run db:push                # Push schema changes
+npm run db:generate            # Regenerate Prisma client
+npm run db:migrate             # Create and apply migration
+npm run db:reset               # Reset database (destructive)
+npm run seed                   # Re-seed providers and agents
+
+# Production
+npm run build && npm start     # Build and start production server
 ```
 
 ---
@@ -586,10 +595,10 @@ Please read our **[Contributing Guide](CONTRIBUTING.md)** for detailed instructi
 **Quick start for contributors:**
 ```bash
 git clone https://github.com/rachidSabah/clawhub.git
- cd clawhub
+cd clawhub
 npm install --legacy-peer-deps
-npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts
-npm run dev
+npm run setup          # generates DB, pushes schema, seeds data
+npm run dev:all        # starts all services in one terminal
 ```
 
 ---

@@ -12,7 +12,13 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "seed": "npx tsx prisma/seed.ts",
-    "setup": "npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts"
+    "setup": "npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts",
+    "service:agent-ws": "cd mini-services/agent-ws && npx tsx index.ts",
+    "service:whatsapp": "cd mini-services/whatsapp-bridge && node index.js",
+    "service:messaging": "cd mini-services/messaging-gateway && npx tsx index.ts",
+    "dev:all": "concurrently -n DASH,WS,WA,MSG -c green,cyan,yellow,magenta \"next dev -p 3000\" \"npm run service:agent-ws\" \"npm run service:whatsapp\" \"npm run service:messaging\"",
+    "start:all": "concurrently -n DASH,WS,WA,MSG -c green,cyan,yellow,magenta \"npm start\" \"npm run service:agent-ws\" \"npm run service:whatsapp\" \"npm run service:messaging\"",
+    "quickstart": "npm run setup && npm run dev:all"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -89,6 +95,7 @@
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
     "bun-types": "^1.3.4",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4",

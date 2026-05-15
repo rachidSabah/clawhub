@@ -192,26 +192,67 @@ Write-Host "  |          INFOHAS ClawHub Installed Successfully!             |" 
 Write-Host "  |                                                              |" -ForegroundColor Green
 Write-Host "  ================================================================" -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
-Write-Host "  |  Start (dev):   cd $installDir && npm run dev         " -ForegroundColor Green
-Write-Host "  |  Start (prod):  cd $installDir && npm start            " -ForegroundColor Green
-Write-Host "  |  URL:           http://localhost:3000                        " -ForegroundColor Green
+Write-Host "  |  ONE-COMMAND STARTS:                                         " -ForegroundColor Green
+Write-Host "  |    All services (dev):  npm run dev:all                      " -ForegroundColor Green
+Write-Host "  |    All services (prod): npm run start:all                    " -ForegroundColor Green
+Write-Host "  |    Dashboard only:      npm run dev                          " -ForegroundColor Green
+Write-Host "  |    Full setup + start:  npm run quickstart                   " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
+Write-Host "  |  URL:           http://localhost:3000                        " -ForegroundColor Green
 Write-Host "  |  Docker:        docker compose up -d                        " -ForegroundColor Green
-Write-Host "  |  Docker pull:   docker pull ghcr.io/rachidsabah/clawhub     " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
 Write-Host "  |  Services:                                                   " -ForegroundColor Green
-Write-Host "  |    Main App:    http://localhost:3000                        " -ForegroundColor Green
+Write-Host "  |    Dashboard:   http://localhost:3000                        " -ForegroundColor Green
 Write-Host "  |    WebSocket:   ws://localhost:3003                          " -ForegroundColor Green
 Write-Host "  |    WhatsApp:    http://localhost:3004                        " -ForegroundColor Green
 Write-Host "  |    Messaging:   http://localhost:3005                        " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
-Write-Host "  |  Slash Commands:  /help /compress /usage /insights          " -ForegroundColor Green
-Write-Host "  |                   /skills /stop /status /platforms          " -ForegroundColor Green
-Write-Host "  |  Command Palette:  Ctrl+K                                    " -ForegroundColor Green
-Write-Host "  |  Keyboard Help:    Ctrl+Shift+/                              " -ForegroundColor Green
+Write-Host "  |  Dashboard Settings:  Ctrl+,  (gear icon)                   " -ForegroundColor Green
+Write-Host "  |  Command Palette:     Ctrl+K                                 " -ForegroundColor Green
+Write-Host "  |  Keyboard Help:       Ctrl+Shift+/                           " -ForegroundColor Green
 Write-Host "  |                                                              |" -ForegroundColor Green
 Write-Host "  ================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Docs: https://github.com/rachidSabah/clawhub" -ForegroundColor Cyan
 Write-Host "  Docker: docker pull ghcr.io/rachidsabah/clawhub:latest" -ForegroundColor Cyan
 Write-Host ""
+
+# ---------------------------------------------------------------------------
+# Auto-Start Prompt
+# ---------------------------------------------------------------------------
+Write-Host ""
+Write-Host "Launch ClawHub now?" -ForegroundColor Yellow
+Write-Host "  1) Start all services in dev mode  (npm run dev:all)" -ForegroundColor Cyan
+Write-Host "  2) Start dashboard only            (npm run dev)" -ForegroundColor Cyan
+Write-Host "  3) Exit (start manually later)" -ForegroundColor Cyan
+Write-Host ""
+$choice = Read-Host "Enter choice [1/2/3] (default: 1)"
+if (-not $choice) { $choice = "1" }
+
+Push-Location $installDir
+
+switch ($choice) {
+    "1" {
+        Write-Host ""
+        Write-Ok "Starting all services in dev mode..."
+        Write-Host "  Press Ctrl+C to stop all services" -ForegroundColor Cyan
+        Write-Host ""
+        npx concurrently -n DASH,WS,WA,MSG -c green,cyan,yellow,magenta "next dev -p 3000" "npm run service:agent-ws" "npm run service:whatsapp" "npm run service:messaging"
+    }
+    "2" {
+        Write-Host ""
+        Write-Ok "Starting dashboard only..."
+        Write-Host "  Press Ctrl+C to stop" -ForegroundColor Cyan
+        Write-Host ""
+        npm run dev
+    }
+    "3" {
+        Write-Host ""
+        Write-Ok "Run 'cd $installDir; npm run dev:all' when ready."
+    }
+    default {
+        Write-Ok "Run 'cd $installDir; npm run dev:all' when ready."
+    }
+}
+
+Pop-Location

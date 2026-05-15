@@ -228,29 +228,68 @@ install_clawhub() {
   echo -e "${GREEN}║                                                              ║${NC}"
   echo -e "${GREEN}╠══════════════════════════════════════════════════════════════╣${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
-  echo -e "${GREEN}║  Start (dev):   cd ${install_dir} && npm run dev       ${NC}"
-  echo -e "${GREEN}║  Start (prod):  cd ${install_dir} && npm start          ${NC}"
-  echo -e "${GREEN}║  URL:           http://localhost:3000                        ║${NC}"
+  echo -e "${GREEN}║  ONE-COMMAND STARTS:                                         ║${NC}"
+  echo -e "${GREEN}║    All services (dev):  npm run dev:all                      ║${NC}"
+  echo -e "${GREEN}║    All services (prod): npm run start:all                    ║${NC}"
+  echo -e "${GREEN}║    Dashboard only:      npm run dev                          ║${NC}"
+  echo -e "${GREEN}║    Full setup + start:  npm run quickstart                   ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
+  echo -e "${GREEN}║  URL:           http://localhost:3000                        ║${NC}"
   echo -e "${GREEN}║  Docker:        docker compose up -d                        ║${NC}"
-  echo -e "${GREEN}║  Docker pull:   docker pull ghcr.io/rachidsabah/clawhub     ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
   echo -e "${GREEN}║  Services:                                                   ║${NC}"
-  echo -e "${GREEN}║    Main App:    http://localhost:3000                        ║${NC}"
+  echo -e "${GREEN}║    Dashboard:   http://localhost:3000                        ║${NC}"
   echo -e "${GREEN}║    WebSocket:   ws://localhost:3003                          ║${NC}"
   echo -e "${GREEN}║    WhatsApp:    http://localhost:3004                        ║${NC}"
   echo -e "${GREEN}║    Messaging:   http://localhost:3005                        ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
-  echo -e "${GREEN}║  Slash Commands:  /help /compress /usage /insights          ║${NC}"
-  echo -e "${GREEN}║                   /skills /stop /status /platforms          ║${NC}"
-  echo -e "${GREEN}║  Command Palette:  Ctrl+K                                    ║${NC}"
-  echo -e "${GREEN}║  Keyboard Help:    Ctrl+Shift+/                              ║${NC}"
+  echo -e "${GREEN}║  Dashboard Settings:  Ctrl+,  (gear icon)                   ║${NC}"
+  echo -e "${GREEN}║  Command Palette:     Ctrl+K                                 ║${NC}"
+  echo -e "${GREEN}║  Keyboard Help:       Ctrl+Shift+/                           ║${NC}"
   echo -e "${GREEN}║                                                              ║${NC}"
   echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
   echo ""
   echo -e "${CYAN}Docs: https://github.com/rachidSabah/clawhub${NC}"
   echo -e "${CYAN}Docker: docker pull ghcr.io/rachidsabah/clawhub:latest${NC}"
   echo ""
+
+  # --- Auto-Start Prompt ---
+  echo ""
+  echo -e "${YELLOW}${BOLD}Launch ClawHub now?${NC}"
+  echo -e "  ${CYAN}1${NC}) Start all services in dev mode  (${YELLOW}npm run dev:all${NC})"
+  echo -e "  ${CYAN}2${NC}) Start dashboard only            (${YELLOW}npm run dev${NC})"
+  echo -e "  ${CYAN}3${NC}) Exit (start manually later)"
+  echo ""
+  read -rp "Enter choice [1/2/3] (default: 1): " choice
+  case "${choice:-1}" in
+    1)
+      echo ""
+      info "Starting all services in dev mode..."
+      echo -e "  ${CYAN}Press Ctrl+C to stop all services${NC}"
+      echo ""
+      cd "$install_dir"
+      npx concurrently -n DASH,WS,WA,MSG -c green,cyan,yellow,magenta \
+        "next dev -p 3000" \
+        "cd mini-services/agent-ws && npx tsx index.ts" \
+        "cd mini-services/whatsapp-bridge && node index.js" \
+        "cd mini-services/messaging-gateway && npx tsx index.ts"
+      ;;
+    2)
+      echo ""
+      info "Starting dashboard only..."
+      echo -e "  ${CYAN}Press Ctrl+C to stop${NC}"
+      echo ""
+      cd "$install_dir"
+      npm run dev
+      ;;
+    3)
+      echo ""
+      info "Run ${YELLOW}cd ${install_dir} && npm run dev:all${NC} when ready."
+      ;;
+    *)
+      info "Invalid choice. Run ${YELLOW}cd ${install_dir} && npm run dev:all${NC} when ready."
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
