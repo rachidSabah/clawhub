@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { HERMES_PROVIDERS } from '@/lib/api'
 
 export async function GET(
   _request: NextRequest,
@@ -47,7 +48,7 @@ export async function PATCH(
     const body = await request.json()
     const { name, type, baseUrl, apiKey, isActive, isDefault, models, envVar, authType, providerConfig } = body
 
-    const validTypes = ['cli', 'openai-compatible', 'anthropic', 'ollama']
+    const validTypes = [...HERMES_PROVIDERS.map(p => p.type), 'cli', 'openai-compatible']
     if (type !== undefined && !validTypes.includes(type)) {
       return NextResponse.json(
         { error: `Type must be one of: ${validTypes.join(', ')}` },

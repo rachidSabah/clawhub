@@ -153,6 +153,18 @@ install_prerequisites() {
   if ! command -v node &>/dev/null; then
     fail "Node.js installation failed. Please install Node.js >= 18 manually: https://nodejs.org/"
   fi
+
+  # Install Chromium system libraries (needed by WhatsApp Bridge / Puppeteer)
+  if [ "$PLATFORM" = "linux" ] || [ "$PLATFORM" = "wsl" ]; then
+    info "Installing Chromium system libraries for WhatsApp Bridge..."
+    sudo apt-get update -qq 2>/dev/null || true
+    sudo apt-get install -y \
+      libnspr4 libnss3 libnssutil3 libsmime3 libasound2 \
+      libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+      libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+      libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
+      2>/dev/null || warn "Some Chromium libraries could not be installed (WhatsApp Bridge may not work)"
+  fi
 }
 
 # ---------------------------------------------------------------------------
