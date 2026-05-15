@@ -161,6 +161,17 @@ foreach ($svc in $services) {
 
 # Step 4: Generate Prisma Client
 Write-Step "4/7" "Generating Prisma client..."
+
+# Ensure db directory exists and .env has correct relative path
+if (-not (Test-Path "db")) { New-Item -ItemType Directory -Path "db" | Out-Null }
+if (Test-Path ".env") {
+    $envContent = Get-Content ".env" -Raw
+    $envContent = $envContent -replace 'DATABASE_URL=file:.*/db/custom\.db', 'DATABASE_URL=file:./db/custom.db'
+    Set-Content ".env" $envContent
+} else {
+    Set-Content ".env" "DATABASE_URL=file:./db/custom.db"
+}
+
 npx prisma generate
 
 # Step 5: Setup Database

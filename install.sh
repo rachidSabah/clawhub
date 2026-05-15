@@ -158,10 +158,18 @@ install_prerequisites() {
   if [ "$PLATFORM" = "linux" ] || [ "$PLATFORM" = "wsl" ]; then
     info "Installing Chromium system libraries for WhatsApp Bridge..."
     sudo apt-get update -qq 2>/dev/null || true
+    # Ubuntu 24.04+ uses t64 package names; try both old and new names
     sudo apt-get install -y \
-      libnspr4 libnss3 libnssutil3 libsmime3 libasound2 \
-      libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-      libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+      libnspr4 libnss3 libnssutil3 libsmime3 \
+      libasound2t64 2>/dev/null || sudo apt-get install -y libasound2 2>/dev/null || true
+    sudo apt-get install -y \
+      libatk1.0-0t64 2>/dev/null || sudo apt-get install -y libatk1.0-0 2>/dev/null || true
+    sudo apt-get install -y \
+      libatk-bridge2.0-0t64 2>/dev/null || sudo apt-get install -y libatk-bridge2.0-0 2>/dev/null || true
+    sudo apt-get install -y \
+      libcups2t64 2>/dev/null || sudo apt-get install -y libcups2 2>/dev/null || true
+    sudo apt-get install -y \
+      libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
       libxrandr2 libgbm1 libpango-1.0-0 libcairo2 \
       2>/dev/null || warn "Some Chromium libraries could not be installed (WhatsApp Bridge may not work)"
   fi
@@ -212,6 +220,16 @@ install_clawhub() {
 
   # --- Step 4: Generate Prisma Client ---
   step "4/7" "Generating Prisma client..."
+
+  # Ensure db directory exists and .env has correct relative path
+  mkdir -p db
+  if [ -f .env ]; then
+    # Fix any hardcoded absolute paths in .env (from dev environment)
+    sed -i 's|DATABASE_URL=file:.*/db/custom.db|DATABASE_URL=file:./db/custom.db|' .env
+  else
+    echo 'DATABASE_URL=file:./db/custom.db' > .env
+  fi
+
   npx prisma generate
 
   # --- Step 5: Setup Database ---
