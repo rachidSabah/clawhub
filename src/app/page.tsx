@@ -1,10 +1,6 @@
-import dynamic from 'next/dynamic'
-
-const AppLayout = dynamic(
-  () => import('@/components/dashboard/AppLayout').then((m) => m.AppLayout),
-  { ssr: false }
-)
+import { ClientLayout } from '@/components/dashboard/ClientLayout'
 
 export default function Home() {
-  return <AppLayout />
+  return <ClientLayout />
 }
+
