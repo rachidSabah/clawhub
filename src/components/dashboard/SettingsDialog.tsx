@@ -10,12 +10,6 @@ import {
 } from '@/lib/api'
 import type { EnvEntry } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -66,6 +60,7 @@ import {
   Play,
   Square,
   Terminal,
+  X,
 } from 'lucide-react'
 import type { ProviderType, ModelInfo, HermesProviderDef } from '@/lib/types'
 import { WhatsAppPanel } from './WhatsAppPanel'
@@ -1385,6 +1380,16 @@ export function SettingsDialog() {
     }
   }, [isSettingsOpen, loadProviders, loadSettings])
 
+  // Close on Escape
+  useEffect(() => {
+    if (!isSettingsOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSettingsOpen(false)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isSettingsOpen, setSettingsOpen])
+
   const getHermesDef = (type: string): HermesProviderDef | undefined => {
     return HERMES_PROVIDERS.find(p => p.type === type)
   }
@@ -1487,48 +1492,48 @@ export function SettingsDialog() {
     return acc
   }, {})
 
+  if (!isSettingsOpen) return null
+
   return (
-    <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="max-w-5xl max-h-[85vh] p-0 gap-0">
-        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
-          <DialogTitle className="flex items-center gap-2">
-            <Server className="w-5 h-5" />
-            INFOHAS ClawHub Settings
-          </DialogTitle>
-        </DialogHeader>
+    <div className="fixed inset-0 z-50 bg-background flex flex-col" autoFocus>
+      {/* ── Top Navigation Bar ── */}
+      <header className="h-12 shrink-0 border-b border-border flex items-center px-4 gap-2">
+        <div className="flex items-center gap-2 mr-4">
+          <Server className="w-4 h-4 text-emerald-500" />
+          <span className="text-sm font-semibold">ClawHub</span>
+          <span className="text-xs text-muted-foreground">Settings</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          {settingsTabs.map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors rounded-md',
+                  activeTab === tab.value
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+        <div className="ml-auto">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(false)}>
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex min-h-0">
-          {/* ── Vertical Sidebar ── */}
-          <div className="w-48 shrink-0 border-r border-border bg-muted/20 py-2 overflow-y-auto">
-            {Object.entries(tabGroups).map(([group, tabs]) => (
-              <div key={group} className="mb-3">
-                <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                  {group}
-                </div>
-                {tabs.map((tab) => {
-                  const Icon = tab.icon
-                  return (
-                    <button
-                      key={tab.value}
-                      onClick={() => setActiveTab(tab.value)}
-                      className={cn(
-                        'w-full flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium transition-colors rounded-md mx-1',
-                        activeTab === tab.value
-                          ? 'bg-accent text-accent-foreground'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
-                      )}
-                    >
-                      <Icon className="w-3.5 h-3.5 shrink-0" />
-                      {tab.label}
-                    </button>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-
-          {/* ── Content Area ── */}
-          <ScrollArea className="flex-1 max-h-[70vh]">
+      {/* ── Content Area ── */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex min-h-0">
+        <ScrollArea className="flex-1">
+          <div className="max-w-5xl mx-auto">
             {/* ── Providers Tab ── */}
             <TabsContent value="providers" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-3">
@@ -1700,8 +1705,8 @@ export function SettingsDialog() {
                         if (models.length === 0) return null
                         return (
                           <div className="flex flex-wrap gap-1">
-                            {models.slice(0, 10).map((model) => (
-                              <Badge key={model.id} variant="outline" className="text-[10px] h-5">{model.name || model.id}</Badge>
+                            {models.slice(0, 10).map((model, idx) => (
+                              <Badge key={model.id || `model-${idx}`} variant="outline" className="text-[10px] h-5">{model.name || model.id || `Model ${idx+1}`}</Badge>
                             ))}
                             {models.length > 10 && <Badge variant="outline" className="text-[10px] h-5">+{models.length - 10} more</Badge>}
                           </div>
@@ -1879,9 +1884,9 @@ export function SettingsDialog() {
                 </div>
               </div>
             </TabsContent>
-          </ScrollArea>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </ScrollArea>
+      </Tabs>
+    </div>
   )
 }

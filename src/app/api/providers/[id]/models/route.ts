@@ -309,12 +309,16 @@ async function fetchModelsForProvider(id: string) {
     }
   }
 
-  // Normalize models to have consistent fields
-  const normalizedModels = models.map((m) => ({
-    id: (m.id ?? m.name ?? m.model ?? '').toString(),
-    name: (m.name ?? m.id ?? m.model ?? '').toString(),
-    provider: provider.id,
-  }))
+  // Normalize models to have consistent fields — ensure no empty IDs
+  const normalizedModels = models.map((m, i) => {
+    const rawId = (m.id ?? m.name ?? m.model ?? '').toString()
+    const rawName = (m.name ?? m.id ?? m.model ?? '').toString()
+    return {
+      id: rawId || `${provider.type}-model-${i}`,
+      name: rawName || `Model ${i + 1}`,
+      provider: provider.id,
+    }
+  })
 
   // Update the provider's models field
   await db.provider.update({

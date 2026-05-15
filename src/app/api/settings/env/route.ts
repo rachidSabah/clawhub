@@ -263,7 +263,7 @@ export async function PUT(request: NextRequest) {
           if (provider) {
             await db.provider.update({
               where: { id: provider.id },
-              data: { apiKey: value },
+              data: { apiKey: value, models: null }, // Clear models to trigger re-fetch with new key
             })
             syncedProviders.push(providerType)
           }

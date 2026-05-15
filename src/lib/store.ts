@@ -184,7 +184,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       for (const p of providers) {
         if (!p.isActive) continue
         try {
-          if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; models.push({ id, name: m.name || id, provider: p.id }) }) }
+          if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; const name = m.name || id; models.push({ ...m, id, name, provider: p.id }) }) }
         } catch {}
       }
       set({ availableModels: models })
@@ -199,18 +199,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Fetched models are persisted in the DB, so subsequent loads are fast.
       const providersNeedingModels = providers.filter(p => p.isActive && !p.models)
       if (providersNeedingModels.length > 0) {
+        console.log(`[store] Auto-fetching models for ${providersNeedingModels.length} providers...`)
         Promise.allSettled(
           providersNeedingModels.map(p => apiFetchProviderModels(p.id))
-        ).then(() => {
+        ).then((results) => {
+          results.forEach((r, i) => {
+            if (r.status === 'rejected') {
+              console.warn(`[store] Model fetch failed for ${providersNeedingModels[i].name}:`, r.reason)
+            }
+          })
           // Reload providers to pick up newly fetched models
           apiFetchProviders().then(updatedProviders => {
             const updatedModels: ModelInfo[] = []
             for (const p of updatedProviders) {
               if (!p.isActive) continue
               try {
-                if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; updatedModels.push({ id, name: m.name || id, provider: p.id }) }) }
+                if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; const name = m.name || id; updatedModels.push({ ...m, id, name, provider: p.id }) }) }
               } catch {}
             }
+            console.log(`[store] Models loaded: ${updatedModels.length} total from ${updatedProviders.filter(p => p.models).length} providers`)
             set({ providers: updatedProviders, availableModels: updatedModels })
           })
         })
