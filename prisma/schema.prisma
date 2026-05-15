@@ -357,3 +357,35 @@ model ContextFile {
 
   @@index([category])
 }
+
+// ---------------------------------------------------------------------------
+// Kanban Board — Task management with drag-and-drop columns
+// ---------------------------------------------------------------------------
+model KanbanColumn {
+  id        String      @id @default(cuid())
+  title     String
+  position  Int         @default(0)
+  color     String?     // tailwind color class e.g. "bg-blue-500"
+  cards     KanbanCard[]
+
+  @@index([position])
+}
+
+model KanbanCard {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  color       String?  // tailwind color e.g. "bg-emerald-500/10"
+  priority    String   @default("medium") // "low", "medium", "high", "urgent"
+  tags        String?  // JSON array of tags
+  assignee    String?
+  dueDate     DateTime?
+  position    Int      @default(0)
+  columnId    String
+  column      KanbanColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([columnId])
+  @@index([position])
+}

@@ -8,12 +8,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MessageSquarePlus, Bot, Trash2, Clock, FolderOpen, Plus, Cpu, Code2, Monitor, Sparkles, Play, Zap, ChevronDown, ChevronRight, Store, FileText, GitBranch } from 'lucide-react'
+import { MessageSquarePlus, Bot, Trash2, Clock, FolderOpen, Plus, Cpu, Code2, Monitor, Sparkles, Play, Zap, ChevronDown, ChevronRight, Store, FileText, GitBranch, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isToday, isYesterday, subDays } from 'date-fns'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AgentGallery } from './AgentGallery'
 import { DocumentsPanel } from './DocumentsPanel'
+import { KanbanPanel } from './KanbanPanel'
 
 const PREBUILT_AGENTS = [
   { id: 'clawhub-agent', name: 'ClawHub Agent', desc: 'Full AI capacity', icon: Sparkles, color: 'from-violet-500 to-purple-600' },
@@ -98,13 +99,14 @@ export function Sidebar() {
       {/* Tabs */}
       <Tabs value={sidebarTab} onValueChange={setSidebarTab} className="flex-1 flex flex-col min-h-0">
         <div className="shrink-0 px-2 pt-2">
-          <TabsList className="w-full grid grid-cols-6 h-7">
+          <TabsList className="w-full grid grid-cols-7 h-7">
             <TabsTrigger value="chats" className="text-[10px] gap-0.5"><MessageSquarePlus className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="models" className="text-[10px] gap-0.5"><Cpu className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="workspaces" className="text-[10px] gap-0.5"><FolderOpen className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="cron" className="text-[10px] gap-0.5"><Clock className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="agents" className="text-[10px] gap-0.5"><Bot className="w-3 h-3" /></TabsTrigger>
             <TabsTrigger value="documents" className="text-[10px] gap-0.5"><FileText className="w-3 h-3" /></TabsTrigger>
+            <TabsTrigger value="kanban" className="text-[10px] gap-0.5"><LayoutGrid className="w-3 h-3" /></TabsTrigger>
           </TabsList>
         </div>
 
@@ -189,6 +191,11 @@ export function Sidebar() {
           {/* Documents Tab */}
           <TabsContent value="documents" className="p-0 m-0">
             <DocumentsPanel />
+          </TabsContent>
+
+          {/* Kanban Tab */}
+          <TabsContent value="kanban" className="p-0 m-0">
+            <KanbanPanel />
           </TabsContent>
 
           {/* Agents Tab */}
