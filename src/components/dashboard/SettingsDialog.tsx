@@ -334,6 +334,7 @@ const API_KEY_LABELS: Record<string, string> = {
 }
 
 function ApiKeysPanel() {
+  const { loadProviders } = useAppStore()
   const [envData, setEnvData] = useState<Record<string, EnvEntry>>({})
   const [categories, setCategories] = useState<Record<string, string[]>>({})
   const [loading, setLoading] = useState(true)
@@ -382,10 +383,12 @@ function ApiKeysPanel() {
       }
 
       const result = await updateEnvSettings(updates)
+      // Reload providers — this will auto-fetch models for providers that now have API keys
+      await loadProviders()
       if (result.restartRequired) {
-        setSaveMessage({ type: 'warning', text: 'Settings saved! Some changes require a server restart to take full effect.' })
+        setSaveMessage({ type: 'warning', text: 'Settings saved! Reloading providers and fetching models...' })
       } else {
-        setSaveMessage({ type: 'success', text: 'Settings saved successfully!' })
+        setSaveMessage({ type: 'success', text: 'Settings saved! Models are being fetched in the background.' })
       }
       // Reload to get updated masked values
       await loadEnv()
@@ -1389,13 +1392,15 @@ export function SettingsDialog() {
   const handleCreateProvider = async () => {
     try {
       const def = getHermesDef(newProviderForm.type)
-      await createProvider({
+      const provider = await createProvider({
         name: newProviderForm.name || def?.label || newProviderForm.type,
         type: newProviderForm.type,
         baseUrl: newProviderForm.baseUrl || undefined,
         apiKey: newProviderForm.apiKey || undefined,
         isDefault: newProviderForm.isDefault,
       })
+      // Auto-fetch models for the newly created provider
+      try { await fetchProviderModels(provider.id) } catch {}
       await loadProviders()
       setNewProviderForm({ name: '', type: 'openai-compatible', baseUrl: '', apiKey: '', isDefault: false })
       setShowAddProvider(false)
@@ -1406,12 +1411,14 @@ export function SettingsDialog() {
 
   const handleQuickAddProvider = async (def: HermesProviderDef) => {
     try {
-      await createProvider({
+      const provider = await createProvider({
         name: def.label,
         type: def.type,
         baseUrl: def.defaultBaseUrl || undefined,
         isDefault: false,
       })
+      // Auto-fetch models for the newly added provider
+      try { await fetchProviderModels(provider.id) } catch {}
       await loadProviders()
     } catch (err) {
       console.error('Failed to create provider:', err)

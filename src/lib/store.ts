@@ -8,6 +8,7 @@ import {
   fetchConversations as apiFetchConversations,
   fetchMessages as apiFetchMessages,
   fetchProviders as apiFetchProviders,
+  fetchProviderModels as apiFetchProviderModels,
   fetchSettings as apiFetchSettings,
   fetchSkills as apiFetchSkills,
   fetchPlugins as apiFetchPlugins,
@@ -191,6 +192,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!activeProvider) {
         const def = providers.find(p => p.isDefault && p.isActive) ?? providers.find(p => p.isActive) ?? null
         if (def) set({ activeProvider: def })
+      }
+
+      // Auto-fetch models for active providers that don't have models yet.
+      // This runs in the background (non-blocking) so the UI is not delayed.
+      // Fetched models are persisted in the DB, so subsequent loads are fast.
+      const providersNeedingModels = providers.filter(p => p.isActive && !p.models)
+      if (providersNeedingModels.length > 0) {
+        Promise.allSettled(
+          providersNeedingModels.map(p => apiFetchProviderModels(p.id))
+        ).then(() => {
+          // Reload providers to pick up newly fetched models
+          apiFetchProviders().then(updatedProviders => {
+            const updatedModels: ModelInfo[] = []
+            for (const p of updatedProviders) {
+              if (!p.isActive) continue
+              try {
+                if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; updatedModels.push({ id, name: m.name || id, provider: p.id }) }) }
+              } catch {}
+            }
+            set({ providers: updatedProviders, availableModels: updatedModels })
+          })
+        })
       }
     } catch (e) { console.error('[store] loadProviders:', e) }
   },

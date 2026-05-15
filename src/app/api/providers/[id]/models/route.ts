@@ -1,5 +1,65 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { readFileSync, existsSync } from 'fs'
+import { resolve } from 'path'
+
+// Resolve API key: provider.apiKey > process.env > .env file
+function resolveApiKey(envVar?: string | null, providerApiKey?: string | null): string | null {
+  // 1. Provider's stored API key (from "Add Provider" form)
+  if (providerApiKey) return providerApiKey
+
+  // 2. process.env (loaded at startup)
+  if (envVar && process.env[envVar]) return process.env[envVar]
+
+  // 3. Read .env file directly (for keys saved via "API Keys" tab without restart)
+  if (envVar) {
+    try {
+      const envPath = resolve(process.cwd(), '.env')
+      if (existsSync(envPath)) {
+        const envContent = readFileSync(envPath, 'utf-8')
+        const match = envContent.match(new RegExp(`^${envVar}=(.+)$`, 'm'))
+        if (match && match[1]) {
+          const val = match[1].trim().replace(/^["']|["']$/g, '')
+          if (val) return val
+        }
+      }
+    } catch {}
+  }
+
+  return null
+}
+
+// Resolve base URL: provider.baseUrl > defaultBaseUrl from known list
+const PROVIDER_DEFAULT_URLS: Record<string, string> = {
+  'anthropic': 'https://api.anthropic.com/v1',
+  'openrouter': 'https://openrouter.ai/api/v1',
+  'novita': 'https://api.novita.ai/v3/openai',
+  'ai-gateway': 'https://api.ai-gateway/v1',
+  'zai': 'https://open.bigmodel.cn/api/paas/v4',
+  'kimi': 'https://api.moonshot.cn/v1',
+  'kimi-cn': 'https://api.moonshot.cn/v1',
+  'arcee': 'https://api.arcee.ai/v1',
+  'gmi': 'https://api.gmi.cloud/v1',
+  'minimax': 'https://api.minimax.chat/v1',
+  'minimax-cn': 'https://api.minimax.chat/v1',
+  'alibaba': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  'alibaba-coding': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  'kilocode': 'https://api.kilocode.ai/v1',
+  'xiaomi': 'https://api.xiaomi.com/v1',
+  'tencent-tokenhub': 'https://api.tokenhub.tencent.com/v1',
+  'opencode-zen': 'https://api.opencode.dev/v1',
+  'opencode-go': 'https://api.opencode.dev/v1',
+  'deepseek': 'https://api.deepseek.com/v1',
+  'huggingface': 'https://api-inference.huggingface.co/v1',
+  'gemini': 'https://generativelanguage.googleapis.com/v1beta',
+  'lmstudio': 'http://localhost:1234/v1',
+  'ollama': 'http://localhost:11434',
+}
+
+function resolveBaseUrl(providerType: string, providerBaseUrl?: string | null): string | null {
+  if (providerBaseUrl) return providerBaseUrl.replace(/\/+$/, '')
+  return PROVIDER_DEFAULT_URLS[providerType]?.replace(/\/+$/, '') ?? null
+}
 
 const ANTHROPIC_KNOWN_MODELS = [
   { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', created: null, owned_by: 'anthropic' },
@@ -120,12 +180,12 @@ async function fetchModelsForProvider(id: string) {
   }
   // Gemini API — try fetching from Google's endpoint
   else if (provider.type === 'gemini') {
-    const apiKey = provider.apiKey || process.env.GOOGLE_API_KEY
+    const apiKey = resolveApiKey(provider.envVar, provider.apiKey)
     if (!apiKey) {
       models = GEMINI_KNOWN_MODELS
     } else {
       try {
-        const baseUrl = (provider.baseUrl || 'https://generativelanguage.googleapis.com/v1beta').replace(/\/+$/, '')
+        const baseUrl = resolveBaseUrl(provider.type, provider.baseUrl) || 'https://generativelanguage.googleapis.com/v1beta'
         const response = await fetch(`${baseUrl}/models?key=${apiKey}`, {
           signal: AbortSignal.timeout(15000),
         })
@@ -146,7 +206,7 @@ async function fetchModelsForProvider(id: string) {
   }
   // Ollama — use /api/tags
   else if (provider.type === 'ollama') {
-    const baseUrl = (provider.baseUrl || 'http://localhost:11434').replace(/\/+$/, '')
+    const baseUrl = resolveBaseUrl(provider.type, provider.baseUrl) || 'http://localhost:11434'
     const response = await fetch(`${baseUrl}/api/tags`, {
       signal: AbortSignal.timeout(15000),
     })
@@ -167,7 +227,7 @@ async function fetchModelsForProvider(id: string) {
   }
   // OpenAI-compatible providers — try /models endpoint
   else if (OPENAI_COMPATIBLE_TYPES.includes(provider.type)) {
-    const baseUrl = (provider.baseUrl || '').replace(/\/+$/, '')
+    const baseUrl = resolveBaseUrl(provider.type, provider.baseUrl)
     if (!baseUrl) {
       return NextResponse.json(
         { error: 'Base URL is required for this provider type. Please configure it in settings.' },
@@ -179,15 +239,13 @@ async function fetchModelsForProvider(id: string) {
       'Content-Type': 'application/json',
     }
 
-    // Resolve API key from provider or environment variable
-    const apiKey = provider.apiKey || (provider.envVar ? process.env[provider.envVar] : null)
+    // Resolve API key from provider DB, process.env, or .env file
+    const apiKey = resolveApiKey(provider.envVar, provider.apiKey)
     if (apiKey) {
       if (provider.type === 'openrouter') {
         headers['Authorization'] = `Bearer ${apiKey}`
         headers['HTTP-Referer'] = 'https://hermes-ai.app'
         headers['X-Title'] = 'Hermes AI Agent'
-      } else if (provider.type === 'huggingface') {
-        headers['Authorization'] = `Bearer ${apiKey}`
       } else {
         headers['Authorization'] = `Bearer ${apiKey}`
       }
@@ -224,11 +282,12 @@ async function fetchModelsForProvider(id: string) {
   }
   // Unknown type — try generic OpenAI-compatible approach
   else {
-    if (provider.baseUrl) {
+    const baseUrl = resolveBaseUrl(provider.type, provider.baseUrl)
+    if (baseUrl) {
       try {
-        const baseUrl = provider.baseUrl.replace(/\/+$/, '')
         const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-        if (provider.apiKey) headers['Authorization'] = `Bearer ${provider.apiKey}`
+        const apiKey = resolveApiKey(provider.envVar, provider.apiKey)
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
         const response = await fetch(`${baseUrl}/models`, {
           headers,
           signal: AbortSignal.timeout(15000),

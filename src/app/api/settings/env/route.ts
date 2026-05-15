@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
+import { db } from '@/lib/db'
 
 // ---------------------------------------------------------------------------
 // Environment Variable Configuration API
@@ -214,6 +215,62 @@ export async function PUT(request: NextRequest) {
     // Also update process.env for the current session
     for (const [key, value] of Object.entries(updates)) {
       process.env[key] = value
+    }
+
+    // Sync API keys to provider DB records so model fetching works
+    // This maps env var names to provider types
+    const ENV_TO_PROVIDER: Record<string, string> = {
+      'ANTHROPIC_API_KEY': 'anthropic',
+      'OPENAI_API_KEY': 'openai',
+      'GOOGLE_API_KEY': 'gemini',
+      'DEEPSEEK_API_KEY': 'deepseek',
+      'OPENROUTER_API_KEY': 'openrouter',
+      'HF_TOKEN': 'huggingface',
+      'GLM_API_KEY': 'zai',
+      'KIMI_API_KEY': 'kimi',
+      'KIMI_CN_API_KEY': 'kimi-cn',
+      'DASHSCOPE_API_KEY': 'alibaba',
+      'MINIMAX_API_KEY': 'minimax',
+      'MINIMAX_CN_API_KEY': 'minimax-cn',
+      'NOVITA_API_KEY': 'novita',
+      'GROQ_API_KEY': 'groq',
+      'MISTRAL_API_KEY': 'mistral',
+      'COHERE_API_KEY': 'cohere',
+      'TOGETHER_API_KEY': 'together',
+      'FIREWORKS_API_KEY': 'fireworks',
+      'PERPLEXITY_API_KEY': 'perplexity',
+      'XAI_API_KEY': 'xai',
+      'SAMBANOVA_API_KEY': 'sambanova',
+      'CEREBRAS_API_KEY': 'cerebras',
+      'AI21_API_KEY': 'ai21',
+      'VOYAGE_API_KEY': 'voyage',
+      'ARCEEAI_API_KEY': 'arcee',
+      'GMI_API_KEY': 'gmi',
+      'KILOCODE_API_KEY': 'kilocode',
+      'XIAOMI_API_KEY': 'xiaomi',
+      'TOKENHUB_API_KEY': 'tencent-tokenhub',
+      'OPENCODE_ZEN_API_KEY': 'opencode-zen',
+      'OPENCODE_GO_API_KEY': 'opencode-go',
+      'AI_GATEWAY_API_KEY': 'ai-gateway',
+    }
+
+    const syncedProviders: string[] = []
+    for (const [key, value] of Object.entries(updates)) {
+      const providerType = ENV_TO_PROVIDER[key]
+      if (providerType && value) {
+        try {
+          const provider = await db.provider.findFirst({ where: { type: providerType } })
+          if (provider) {
+            await db.provider.update({
+              where: { id: provider.id },
+              data: { apiKey: value },
+            })
+            syncedProviders.push(providerType)
+          }
+        } catch (e) {
+          console.error(`Failed to sync ${key} to provider ${providerType}:`, e)
+        }
+      }
     }
 
     return NextResponse.json({
