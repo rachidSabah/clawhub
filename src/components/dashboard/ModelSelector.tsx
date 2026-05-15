@@ -11,7 +11,7 @@ export function ModelSelector() {
         <SelectValue placeholder="Select model" />
       </SelectTrigger>
       <SelectContent>
-        {availableModels.map(m => <SelectItem key={m.id} value={m.id} className="text-xs">{m.name || m.id}</SelectItem>)}
+        {availableModels.map((m, i) => <SelectItem key={m.id || `model-${i}`} value={m.id || `model-${i}`} className="text-xs">{m.name || m.id}</SelectItem>)}
         {availableModels.length === 0 && <div className="px-2 py-1.5 text-xs text-muted-foreground">No models available</div>}
       </SelectContent>
     </Select>

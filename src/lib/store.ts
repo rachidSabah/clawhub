@@ -183,7 +183,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       for (const p of providers) {
         if (!p.isActive) continue
         try {
-          if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach(m => models.push({ id: m.id, name: m.name, provider: p.id })) }
+          if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; models.push({ id, name: m.name || id, provider: p.id }) }) }
         } catch {}
       }
       set({ availableModels: models })

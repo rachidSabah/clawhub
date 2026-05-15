@@ -57,6 +57,19 @@ After installation, the installer asks if you want to launch immediately. Or sta
 
 Open **http://localhost:3000** in your browser. All services run in one terminal!
 
+### One-Line Uninstall
+
+| Platform | Command |
+|----------|---------|
+| **Linux / WSL / macOS** | `curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/uninstall.sh \| bash` |
+| **Windows PowerShell** | `irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/uninstall.ps1 \| iex` |
+
+The uninstaller will:
+- Stop any running ClawHub processes
+- Ask for confirmation before removing anything
+- Remove the entire installation directory (`~/clawhub`)
+- Clean up desktop shortcuts and shell aliases (optional)
+
 ### Manual Install
 ```bash
 git clone https://github.com/rachidSabah/clawhub.git
@@ -438,6 +451,8 @@ clawhub/
 ├── docker-entrypoint.sh              # Auto DB setup + multi-service
 ├── install.sh                        # One-line installer (Linux/WSL/macOS)
 ├── install.ps1                       # One-line installer (Windows)
+├── uninstall.sh                      # One-line uninstaller (Linux/WSL/macOS)
+├── uninstall.ps1                     # One-line uninstaller (Windows)
 └── README.md
 ```
 

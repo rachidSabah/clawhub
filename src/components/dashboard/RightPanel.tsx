@@ -86,17 +86,17 @@ export function RightPanel() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold">Inspector</span>
           </div>
-          <TabsList className="w-full grid grid-cols-10 h-7">
-            <TabsTrigger value="model" className="text-[9px] gap-0.5"><Zap className="w-3 h-3" /> Model</TabsTrigger>
-            <TabsTrigger value="compare" className="text-[9px] gap-0.5"><ArrowLeftRight className="w-3 h-3" /> Compare</TabsTrigger>
-            <TabsTrigger value="tokens" className="text-[9px] gap-0.5"><Coins className="w-3 h-3" /> Tokens</TabsTrigger>
-            <TabsTrigger value="search" className="text-[9px] gap-0.5"><Search className="w-3 h-3" /> Search</TabsTrigger>
-            <TabsTrigger value="image" className="text-[9px] gap-0.5"><Image className="w-3 h-3" /> Image</TabsTrigger>
-            <TabsTrigger value="docs" className="text-[9px] gap-0.5"><FileText className="w-3 h-3" /> Docs</TabsTrigger>
-            <TabsTrigger value="security" className="text-[9px] gap-0.5"><Shield className="w-3 h-3" /> Security</TabsTrigger>
-            <TabsTrigger value="profile" className="text-[9px] gap-0.5"><User className="w-3 h-3" /> Profile</TabsTrigger>
-            <TabsTrigger value="context" className="text-[9px] gap-0.5"><BookOpen className="w-3 h-3" /> Context</TabsTrigger>
-            <TabsTrigger value="export" className="text-[9px] gap-0.5"><Download className="w-3 h-3" /> Data</TabsTrigger>
+          <TabsList className="w-full flex flex-nowrap gap-0.5 h-auto p-0.5 bg-muted/50 overflow-x-auto">
+            <TabsTrigger value="model" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Zap className="w-3 h-3" /> Model</TabsTrigger>
+            <TabsTrigger value="compare" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><ArrowLeftRight className="w-3 h-3" /> Compare</TabsTrigger>
+            <TabsTrigger value="tokens" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Coins className="w-3 h-3" /> Tokens</TabsTrigger>
+            <TabsTrigger value="search" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Search className="w-3 h-3" /> Search</TabsTrigger>
+            <TabsTrigger value="image" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Image className="w-3 h-3" /> Image</TabsTrigger>
+            <TabsTrigger value="docs" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><FileText className="w-3 h-3" /> Docs</TabsTrigger>
+            <TabsTrigger value="security" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Shield className="w-3 h-3" /> Security</TabsTrigger>
+            <TabsTrigger value="profile" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><User className="w-3 h-3" /> Profile</TabsTrigger>
+            <TabsTrigger value="context" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><BookOpen className="w-3 h-3" /> Context</TabsTrigger>
+            <TabsTrigger value="export" className="text-[9px] gap-0.5 shrink-0 px-1.5 py-1 data-[state=active]:bg-background"><Download className="w-3 h-3" /> Data</TabsTrigger>
           </TabsList>
         </div>
         <ScrollArea className="flex-1">

@@ -125,7 +125,7 @@ function ToolsConfigurationPanel() {
   }
 
   const filtered = categoryFilter === 'all' ? tools : tools.filter(t => t.category === categoryFilter)
-  const categories = ['all', ...Array.from(new Set(tools.map(t => t.category)))]
+  const categories = ['all', ...Array.from(new Set(tools.map(t => t.category || 'uncategorized')))]
   const enabledCount = tools.filter(t => t.enabled).length
 
   if (loading) {
@@ -153,9 +153,9 @@ function ToolsConfigurationPanel() {
         </p>
 
         <div className="flex flex-wrap gap-1">
-          {categories.map(cat => (
+          {categories.map((cat, idx) => (
             <button
-              key={cat}
+              key={cat || `cat-${idx}`}
               onClick={() => setCategoryFilter(cat)}
               className={cn(
                 'px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors',
@@ -169,11 +169,11 @@ function ToolsConfigurationPanel() {
       </div>
 
       <div className="space-y-2">
-        {filtered.map(tool => {
-          const meta = TOOL_CATEGORY_META[tool.category] || { icon: Wrench, color: 'bg-gray-500/10 text-gray-500', label: tool.category }
+        {filtered.map((tool, idx) => {
+          const meta = TOOL_CATEGORY_META[tool.category] || { icon: Wrench, color: 'bg-gray-500/10 text-gray-500', label: tool.category || 'uncategorized' }
           const CatIcon = meta.icon
           return (
-            <div key={tool.name} className="rounded-xl border border-border p-4 space-y-3">
+            <div key={tool.name || `tool-${idx}`} className="rounded-xl border border-border p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', meta.color)}>
@@ -1472,45 +1472,45 @@ export function SettingsDialog() {
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-6 pt-2">
-            <TabsList className="w-full grid grid-cols-10">
-              <TabsTrigger value="providers" className="text-xs gap-1">
+          <div className="px-4 pt-2 overflow-x-auto">
+            <TabsList className="w-full flex flex-nowrap gap-0.5 h-auto p-1 bg-muted/50">
+              <TabsTrigger value="providers" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Globe className="w-3.5 h-3.5" />
                 Providers
               </TabsTrigger>
-              <TabsTrigger value="apikeys" className="text-xs gap-1">
+              <TabsTrigger value="apikeys" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Key className="w-3.5 h-3.5" />
                 API Keys
               </TabsTrigger>
-              <TabsTrigger value="agent" className="text-xs gap-1">
+              <TabsTrigger value="agent" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Shield className="w-3.5 h-3.5" />
                 Agent
               </TabsTrigger>
-              <TabsTrigger value="tools" className="text-xs gap-1">
+              <TabsTrigger value="tools" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Wrench className="w-3.5 h-3.5" />
                 Tools
               </TabsTrigger>
-              <TabsTrigger value="messaging" className="text-xs gap-1">
+              <TabsTrigger value="messaging" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Send className="w-3.5 h-3.5" />
                 Messaging
               </TabsTrigger>
-              <TabsTrigger value="updates" className="text-xs gap-1">
+              <TabsTrigger value="updates" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <RotateCcw className="w-3.5 h-3.5" />
                 Updates
               </TabsTrigger>
-              <TabsTrigger value="services" className="text-xs gap-1">
+              <TabsTrigger value="services" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Server className="w-3.5 h-3.5" />
                 Services
               </TabsTrigger>
-              <TabsTrigger value="database" className="text-xs gap-1">
+              <TabsTrigger value="database" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Database className="w-3.5 h-3.5" />
                 Database
               </TabsTrigger>
-              <TabsTrigger value="appearance" className="text-xs gap-1">
+              <TabsTrigger value="appearance" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Palette className="w-3.5 h-3.5" />
                 Theme
               </TabsTrigger>
-              <TabsTrigger value="data" className="text-xs gap-1">
+              <TabsTrigger value="data" className="text-[10px] gap-1 shrink-0 px-2.5 py-1.5 data-[state=active]:bg-background">
                 <Database className="w-3.5 h-3.5" />
                 Data
               </TabsTrigger>

@@ -3,7 +3,7 @@
 # ============================================================================
 # Install:  irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.ps1 | iex
 # Update:   irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.ps1 | iex
-# Uninstall: Remove-Item -Recurse -Force "$env:USERPROFILE\clawhub"
+# Uninstall: irm https://raw.githubusercontent.com/rachidSabah/clawhub/main/uninstall.ps1 | iex
 # Docker:   docker compose up -d
 # ============================================================================
 

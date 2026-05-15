@@ -4,7 +4,7 @@
 # ============================================================================
 # Install:  curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
 # Update:   curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/install.sh | bash
-# Uninstall: rm -rf ~/clawhub
+# Uninstall: curl -fsSL https://raw.githubusercontent.com/rachidSabah/clawhub/main/uninstall.sh | bash
 # Docker:   docker compose up -d
 # ============================================================================
 
