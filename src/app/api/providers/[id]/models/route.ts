@@ -147,31 +147,60 @@ async function fetchModelsForProvider(id: string) {
 
   let models: Array<Record<string, unknown>> = []
 
+  // Helper: return models and persist them to DB
+  async function returnModels(modelsList: Array<Record<string, unknown>>, message?: string) {
+    const normalizedModels = modelsList.map((m, i) => {
+      const rawId = (m.id ?? m.name ?? m.model ?? '').toString()
+      const rawName = (m.name ?? m.id ?? m.model ?? '').toString()
+      return {
+        id: rawId || `${provider.type}-model-${i}`,
+        name: rawName || `Model ${i + 1}`,
+        provider: provider.id,
+      }
+    })
+
+    // Persist to DB
+    try {
+      await db.provider.update({
+        where: { id },
+        data: { models: JSON.stringify(normalizedModels) },
+      })
+    } catch (e) {
+      console.error('Failed to persist models:', e)
+    }
+
+    return NextResponse.json({ models: normalizedModels, count: normalizedModels.length, ...(message ? { message } : {}) })
+  }
+
   // CLI-based providers
   if (CLI_TYPES.includes(provider.type)) {
     if (provider.type === 'gemini-cli') {
-      return NextResponse.json({
-        models: [
-          { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: provider.id },
-          { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: provider.id },
-          { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: provider.id },
-        ],
-        count: 3,
-        message: 'Gemini CLI models. Use gemini --model <model> to select.',
-      })
+      return returnModels([
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+      ], 'Gemini CLI models. Use gemini --model <model> to select.')
     }
-    return NextResponse.json(
-      { error: 'CLI providers do not support remote model fetching. Configure models manually.' },
-      { status: 400 }
-    )
+    // Other CLI providers: return empty models list (not an error)
+    return returnModels([], 'CLI providers do not support remote model fetching. Configure models manually.')
   }
 
-  // OAuth / device-code providers
+  // OAuth / device-code providers: return known models instead of error
   if (OAUTH_TYPES.includes(provider.type)) {
-    return NextResponse.json(
-      { error: 'OAuth-based providers require authentication first. Please log in via the provider.' },
-      { status: 400 }
-    )
+    const oauthModels: Record<string, Array<Record<string, unknown>>> = {
+      'github-copilot': [
+        { id: 'gpt-4o', name: 'GPT-4o (Copilot)' },
+        { id: 'claude-sonnet-4', name: 'Claude Sonnet 4 (Copilot)' },
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Copilot)' },
+      ],
+      'gemini-oauth': [
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+      ],
+    }
+    const known = oauthModels[provider.type] || []
+    return returnModels(known, 'OAuth provider — showing default models. Authenticate to fetch full list.')
   }
 
   // Providers with known model lists
@@ -207,32 +236,48 @@ async function fetchModelsForProvider(id: string) {
   // Ollama — use /api/tags
   else if (provider.type === 'ollama') {
     const baseUrl = resolveBaseUrl(provider.type, provider.baseUrl) || 'http://localhost:11434'
-    const response = await fetch(`${baseUrl}/api/tags`, {
-      signal: AbortSignal.timeout(15000),
-    })
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error')
-      return NextResponse.json(
-        { error: `Failed to fetch models from Ollama: ${response.status} - ${errorText}` },
-        { status: 502 }
-      )
+    try {
+      const response = await fetch(`${baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(15000),
+      })
+      if (!response.ok) {
+        // Return cached models if available, otherwise empty list
+        if (provider.models) {
+          try {
+            const cached = JSON.parse(provider.models)
+            if (Array.isArray(cached) && cached.length > 0) {
+              return NextResponse.json({ models: cached, count: cached.length, message: 'Ollama not reachable. Using cached models.' })
+            }
+          } catch {}
+        }
+        return returnModels([], `Ollama not reachable at ${baseUrl}. Make sure Ollama is running.`)
+      }
+      const data = await response.json()
+      const ollamaModels = Array.isArray(data) ? data : (data.models ?? [])
+      models = ollamaModels.map((m: Record<string, unknown>) => ({
+        id: m.name ?? m.model,
+        name: m.name ?? m.model,
+        ...m,
+      }))
+    } catch {
+      // Network error for Ollama
+      if (provider.models) {
+        try {
+          const cached = JSON.parse(provider.models)
+          if (Array.isArray(cached) && cached.length > 0) {
+            return NextResponse.json({ models: cached, count: cached.length, message: 'Ollama not reachable. Using cached models.' })
+          }
+        } catch {}
+      }
+      return returnModels([], `Ollama not reachable at ${baseUrl}. Make sure Ollama is running.`)
     }
-    const data = await response.json()
-    const ollamaModels = Array.isArray(data) ? data : (data.models ?? [])
-    models = ollamaModels.map((m: Record<string, unknown>) => ({
-      id: m.name ?? m.model,
-      name: m.name ?? m.model,
-      ...m,
-    }))
   }
   // OpenAI-compatible providers — try /models endpoint
   else if (OPENAI_COMPATIBLE_TYPES.includes(provider.type)) {
     const baseUrl = resolveBaseUrl(provider.type, provider.baseUrl)
     if (!baseUrl) {
-      return NextResponse.json(
-        { error: 'Base URL is required for this provider type. Please configure it in settings.' },
-        { status: 400 }
-      )
+      // No base URL: return empty models (not an error) — provider needs configuration
+      return returnModels([], 'Base URL is required for this provider type. Please configure it in settings.')
     }
 
     const headers: Record<string, string> = {
@@ -262,11 +307,17 @@ async function fetchModelsForProvider(id: string) {
         if (provider.type === 'openrouter') {
           models = OPENROUTER_DEFAULT_MODELS
         } else {
-          const errorText = await response.text().catch(() => 'Unknown error')
-          return NextResponse.json(
-            { error: `Failed to fetch models: ${response.status} - ${errorText}` },
-            { status: 502 }
-          )
+          // Return cached models if available, otherwise empty list
+          if (provider.models) {
+            try {
+              const cached = JSON.parse(provider.models)
+              if (Array.isArray(cached) && cached.length > 0) {
+                return NextResponse.json({ models: cached, count: cached.length, message: 'Using cached models (API returned error).' })
+              }
+            } catch {}
+          }
+          // No cached models — return empty list with warning
+          return returnModels([], `Could not fetch models from API (status ${response.status}). Check your API key and base URL.`)
         }
       } else {
         const data = await response.json()
@@ -276,7 +327,16 @@ async function fetchModelsForProvider(id: string) {
       if (provider.type === 'openrouter') {
         models = OPENROUTER_DEFAULT_MODELS
       } else {
-        throw new Error('Network error fetching models')
+        // Network error: return cached models if available
+        if (provider.models) {
+          try {
+            const cached = JSON.parse(provider.models)
+            if (Array.isArray(cached) && cached.length > 0) {
+              return NextResponse.json({ models: cached, count: cached.length, message: 'Using cached models (network error).' })
+            }
+          } catch {}
+        }
+        return returnModels([], 'Network error fetching models. Check your connection and API configuration.')
       }
     }
   }
@@ -302,10 +362,17 @@ async function fetchModelsForProvider(id: string) {
     }
 
     if (models.length === 0) {
-      return NextResponse.json(
-        { error: `Cannot fetch models for provider type: ${provider.type}. Configure models manually or set a base URL.` },
-        { status: 400 }
-      )
+      // Try cached models first
+      if (provider.models) {
+        try {
+          const cached = JSON.parse(provider.models)
+          if (Array.isArray(cached) && cached.length > 0) {
+            return NextResponse.json({ models: cached, count: cached.length, message: 'Using cached models.' })
+          }
+        } catch {}
+      }
+      // Return empty models instead of error
+      return returnModels([], `Cannot fetch models for provider type: ${provider.type}. Configure models manually or set a base URL.`)
     }
   }
 

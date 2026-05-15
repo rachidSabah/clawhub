@@ -1495,45 +1495,81 @@ export function SettingsDialog() {
   if (!isSettingsOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col" autoFocus>
-      {/* ── Top Navigation Bar ── */}
-      <header className="h-12 shrink-0 border-b border-border flex items-center px-4 gap-2">
-        <div className="flex items-center gap-2 mr-4">
+    <div className="fixed inset-0 z-50 bg-background flex" autoFocus>
+      {/* ── Left Sidebar Navigation ── */}
+      <nav className="w-56 shrink-0 border-r border-border flex flex-col bg-muted/30">
+        {/* Brand */}
+        <div className="h-12 flex items-center gap-2 px-4 border-b border-border">
           <Server className="w-4 h-4 text-emerald-500" />
           <span className="text-sm font-semibold">ClawHub</span>
           <span className="text-xs text-muted-foreground">Settings</span>
         </div>
-        <div className="flex items-center gap-0.5">
-          {settingsTabs.map((tab) => {
-            const Icon = tab.icon
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors rounded-md',
-                  activeTab === tab.value
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
-                )}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-        <div className="ml-auto">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSettingsOpen(false)}>
-            <X className="w-4 h-4" />
+
+        {/* Grouped Navigation */}
+        <ScrollArea className="flex-1">
+          <div className="py-3 px-2 space-y-4">
+            {Object.entries(tabGroups).map(([group, tabs]) => (
+              <div key={group}>
+                <div className="px-2 mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{group}</span>
+                </div>
+                <div className="space-y-0.5">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon
+                    return (
+                      <button
+                        key={tab.value}
+                        onClick={() => setActiveTab(tab.value)}
+                        className={cn(
+                          'w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-colors rounded-lg text-left',
+                          activeTab === tab.value
+                            ? 'bg-accent text-accent-foreground'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                        )}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {tab.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {/* Close Button */}
+        <div className="p-3 border-t border-border">
+          <Button variant="ghost" size="sm" className="w-full h-8 text-xs gap-2 justify-center" onClick={() => setSettingsOpen(false)}>
+            <X className="w-3.5 h-3.5" />
+            Close Settings
           </Button>
         </div>
-      </header>
+      </nav>
 
       {/* ── Content Area ── */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex min-h-0">
-        <ScrollArea className="flex-1">
-          <div className="max-w-5xl mx-auto">
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Content Header */}
+        <header className="h-12 shrink-0 border-b border-border flex items-center px-6">
+          <div className="flex items-center gap-2">
+            {(() => {
+              const activeTabDef = settingsTabs.find(t => t.value === activeTab)
+              if (!activeTabDef) return null
+              const ActiveIcon = activeTabDef.icon
+              return (
+                <>
+                  <ActiveIcon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">{activeTabDef.label}</span>
+                </>
+              )
+            })()}
+          </div>
+        </header>
+
+        {/* Tab Content */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex min-h-0">
+          <ScrollArea className="flex-1">
+            <div className="max-w-4xl mx-auto">
             {/* ── Providers Tab ── */}
             <TabsContent value="providers" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-3">
@@ -1706,7 +1742,7 @@ export function SettingsDialog() {
                         return (
                           <div className="flex flex-wrap gap-1">
                             {models.slice(0, 10).map((model, idx) => (
-                              <Badge key={model.id || `model-${idx}`} variant="outline" className="text-[10px] h-5">{model.name || model.id || `Model ${idx+1}`}</Badge>
+                              <Badge key={`${provider.id}-model-${idx}`} variant="outline" className="text-[10px] h-5">{model.name || model.id || `Model ${idx+1}`}</Badge>
                             ))}
                             {models.length > 10 && <Badge variant="outline" className="text-[10px] h-5">+{models.length - 10} more</Badge>}
                           </div>
@@ -1887,6 +1923,7 @@ export function SettingsDialog() {
           </div>
         </ScrollArea>
       </Tabs>
+      </div>
     </div>
   )
 }

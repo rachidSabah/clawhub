@@ -56,6 +56,7 @@ export interface ModelInfo {
   id: string
   name: string
   provider: string
+  _compositeKey?: string
 }
 
 export interface HermesProviderDef {

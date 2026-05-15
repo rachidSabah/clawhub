@@ -181,10 +181,22 @@ export const useAppStore = create<AppState>((set, get) => ({
       const providers = await apiFetchProviders()
       set({ providers })
       const models: ModelInfo[] = []
+      const seenKeys = new Set<string>()
       for (const p of providers) {
         if (!p.isActive) continue
         try {
-          if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; const name = m.name || id; models.push({ ...m, id, name, provider: p.id }) }) }
+          if (p.models) {
+            (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => {
+              const rawId = m.id || `${p.id}-model-${i}`
+              const compositeKey = `${p.id}::${rawId}`
+              // Deduplicate: skip if this exact provider+model combo was already added,
+              // or if the model id alone was already seen (prevents cross-provider dupes in selector)
+              if (seenKeys.has(rawId)) return
+              seenKeys.add(rawId)
+              const name = m.name || rawId
+              models.push({ ...m, id: rawId, name, provider: p.id, _compositeKey: compositeKey })
+            })
+          }
         } catch {}
       }
       set({ availableModels: models })
@@ -211,10 +223,20 @@ export const useAppStore = create<AppState>((set, get) => ({
           // Reload providers to pick up newly fetched models
           apiFetchProviders().then(updatedProviders => {
             const updatedModels: ModelInfo[] = []
+            const seenKeys = new Set<string>()
             for (const p of updatedProviders) {
               if (!p.isActive) continue
               try {
-                if (p.models) { (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => { const id = m.id || `${p.id}-model-${i}`; const name = m.name || id; updatedModels.push({ ...m, id, name, provider: p.id }) }) }
+                if (p.models) {
+                  (JSON.parse(p.models) as ModelInfo[]).forEach((m, i) => {
+                    const rawId = m.id || `${p.id}-model-${i}`
+                    const compositeKey = `${p.id}::${rawId}`
+                    if (seenKeys.has(rawId)) return
+                    seenKeys.add(rawId)
+                    const name = m.name || rawId
+                    updatedModels.push({ ...m, id: rawId, name, provider: p.id, _compositeKey: compositeKey })
+                  })
+                }
               } catch {}
             }
             console.log(`[store] Models loaded: ${updatedModels.length} total from ${updatedProviders.filter(p => p.models).length} providers`)
