@@ -87,7 +87,7 @@ export function RightPanel() {
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-semibold">Inspector</span>
           </div>
-          <div className="flex gap-0.5 overflow-x-auto pb-1">
+          <div className="grid grid-cols-5 gap-1 pb-2">
             {[
               { value: 'model', icon: Zap, label: 'Model' },
               { value: 'compare', icon: ArrowLeftRight, label: 'Compare' },
@@ -106,14 +106,14 @@ export function RightPanel() {
                   key={tab.value}
                   onClick={() => setRightPanelTab(tab.value)}
                   className={cn(
-                    'flex items-center gap-0.5 px-1.5 py-1 rounded-md text-[9px] font-medium whitespace-nowrap transition-colors shrink-0',
+                    'flex flex-col items-center gap-0.5 px-1 py-1.5 rounded-md text-[9px] font-medium transition-colors',
                     rightPanelTab === tab.value
-                      ? 'bg-background text-foreground shadow-sm border border-border'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
                   )}
                 >
-                  <Icon className="w-3 h-3" />
-                  {tab.label}
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="truncate w-full text-center">{tab.label}</span>
                 </button>
               )
             })}

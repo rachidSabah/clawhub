@@ -1461,52 +1461,67 @@ export function SettingsDialog() {
 
   const configuredTypes = new Set(providers.map(p => p.type))
 
+  const settingsTabs = [
+    { value: 'providers', icon: Globe, label: 'Providers', group: 'Configuration' },
+    { value: 'apikeys', icon: Key, label: 'API Keys', group: 'Configuration' },
+    { value: 'agent', icon: Shield, label: 'Agent', group: 'Configuration' },
+    { value: 'tools', icon: Wrench, label: 'Tools', group: 'Configuration' },
+    { value: 'messaging', icon: Send, label: 'Messaging', group: 'Integrations' },
+    { value: 'updates', icon: RotateCcw, label: 'Updates', group: 'System' },
+    { value: 'services', icon: Server, label: 'Services', group: 'System' },
+    { value: 'database', icon: Database, label: 'Database', group: 'System' },
+    { value: 'appearance', icon: Palette, label: 'Theme', group: 'Preferences' },
+    { value: 'data', icon: Database, label: 'Data', group: 'Preferences' },
+  ]
+
+  const tabGroups = settingsTabs.reduce<Record<string, typeof settingsTabs>>((acc, tab) => {
+    if (!acc[tab.group]) acc[tab.group] = []
+    acc[tab.group].push(tab)
+    return acc
+  }, {})
+
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setSettingsOpen}>
-      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-0">
+      <DialogContent className="max-w-5xl max-h-[85vh] p-0 gap-0">
+        <DialogHeader className="px-6 pt-5 pb-3 border-b border-border">
           <DialogTitle className="flex items-center gap-2">
             <Server className="w-5 h-5" />
             INFOHAS ClawHub Settings
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-4 pt-2">
-            <div className="flex gap-0.5 overflow-x-auto pb-1 scrollbar-thin">
-              {[
-                { value: 'providers', icon: Globe, label: 'Providers' },
-                { value: 'apikeys', icon: Key, label: 'API Keys' },
-                { value: 'agent', icon: Shield, label: 'Agent' },
-                { value: 'tools', icon: Wrench, label: 'Tools' },
-                { value: 'messaging', icon: Send, label: 'Messaging' },
-                { value: 'updates', icon: RotateCcw, label: 'Updates' },
-                { value: 'services', icon: Server, label: 'Services' },
-                { value: 'database', icon: Database, label: 'Database' },
-                { value: 'appearance', icon: Palette, label: 'Theme' },
-                { value: 'data', icon: Database, label: 'Data' },
-              ].map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.value}
-                    onClick={() => setActiveTab(tab.value)}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors shrink-0',
-                      activeTab === tab.value
-                        ? 'bg-background text-foreground shadow-sm border border-border'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
-                    )}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex min-h-0">
+          {/* ── Vertical Sidebar ── */}
+          <div className="w-48 shrink-0 border-r border-border bg-muted/20 py-2 overflow-y-auto">
+            {Object.entries(tabGroups).map(([group, tabs]) => (
+              <div key={group} className="mb-3">
+                <div className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {group}
+                </div>
+                {tabs.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.value}
+                      onClick={() => setActiveTab(tab.value)}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-3 py-1.5 text-[12px] font-medium transition-colors rounded-md mx-1',
+                        activeTab === tab.value
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                      )}
+                    >
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ))}
           </div>
 
-          <ScrollArea className="flex-1 max-h-[65vh]">
+          {/* ── Content Area ── */}
+          <ScrollArea className="flex-1 max-h-[70vh]">
             {/* ── Providers Tab ── */}
             <TabsContent value="providers" className="p-6 pt-4 space-y-4 m-0">
               <div className="rounded-xl border border-border p-4 space-y-3">
